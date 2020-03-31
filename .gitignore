@@ -1,0 +1,9 @@
+initcon
+bac
+.idea
+*.json
+*.bin
+super.in
+__pycache__/
+*.gv
+*.pdf
