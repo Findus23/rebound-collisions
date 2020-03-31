@@ -63,8 +63,8 @@ class CollisionTree:
     def __init__(self):
         self._tree = {}
 
-    def add(self, source1: Particle, source2: Particle, to: Particle):
-        self._tree[to.hash.value] = [source1.hash.value, source2.hash.value]
+    def add(self, source1: Particle, source2: Particle, to: Particle, metadata: Dict):
+        self._tree[to.hash.value] = {"parents": [source1.hash.value, source2.hash.value], "meta": metadata}
 
     def save(self):
         return self._tree

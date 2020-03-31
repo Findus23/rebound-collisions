@@ -26,6 +26,20 @@ water_interpolator = RbfInterpolator(scaled_data, simulations.Y_water)
 mass_interpolator = RbfInterpolator(scaled_data, simulations.Y_mass)
 
 
+def interpolate(alpha, velocity, projectile_mass, gamma):
+    hard_coded_water_mass_fraction = 0.15  # workaround to get proper results for water poor collisions
+    testinput = [alpha, velocity, projectile_mass, gamma,
+                 hard_coded_water_mass_fraction, hard_coded_water_mass_fraction]
+
+    print("# alpha velocity projectile_mass gamma target_water_fraction projectile_water_fraction\n")
+    print(" ".join(map(str, testinput)))
+
+    scaled_input = list(scaler.transform_parameters(testinput))
+    water_retention = water_interpolator.interpolate(*scaled_input)
+    mass_retention = mass_interpolator.interpolate(*scaled_input)
+    return float(water_retention), float(mass_retention)
+
+
 def get_mass_fractions(alpha, velocity_original, escape_velocity, gamma, projectile_mass, target_water_fraction,
                        projectile_water_fraction):
     velocity_si = velocity_original * astronomical_unit / year
@@ -38,6 +52,7 @@ def get_mass_fractions(alpha, velocity_original, escape_velocity, gamma, project
     if gamma > 1:
         gamma = 1 / gamma
     alpha = clamp(alpha, 0, 60)
+    orig_velocity = velocity
     velocity = clamp(velocity, 1, 5)
 
     m_ceres = 9.393e+20
@@ -45,20 +60,15 @@ def get_mass_fractions(alpha, velocity_original, escape_velocity, gamma, project
     projectile_mass = clamp(projectile_mass, 2 * m_ceres, 2 * m_earth)
     gamma = clamp(gamma, 1 / 10, 1)
 
-    testinput = [alpha, velocity, projectile_mass, gamma,
-                 target_water_fraction, projectile_water_fraction]
-
-    print("# alpha velocity projectile_mass gamma target_water_fraction projectile_water_fraction\n")
-    print(" ".join(map(str, testinput)))
-
-    scaled_input = list(scaler.transform_parameters(testinput))
-    water_retention = water_interpolator.interpolate(*scaled_input)
-    mass_retention = mass_interpolator.interpolate(*scaled_input)
+    water_retention, mass_retention = interpolate(alpha, velocity, projectile_mass, gamma)
 
     water_retention = clamp(water_retention, 0, 1)
     mass_retention = clamp(mass_retention, 0, 1)
 
-    return water_retention, mass_retention
+    metadata = {"water_retention": water_retention, "mass_retention": mass_retention, "testinput": testinput,
+                "velocity_si": velocity_si, "escape_velocity": escape_velocity, "orig_velocity": orig_velocity}
+
+    return water_retention, mass_retention, metadata
 
 
 def merge_particles(sim: Simulation, ed: ExtraData):
@@ -95,7 +105,7 @@ def merge_particles(sim: Simulation, ed: ExtraData):
     escape_velocity = sqrt(2 * G * (cp1.m + cp2.m) / ((cp1.r + cp2.r) * astronomical_unit))
 
     print("interpolating")
-    water_ret, stone_ret = get_mass_fractions(
+    water_ret, stone_ret, meta = get_mass_fractions(
         alpha=ang, velocity_original=vdiff, escape_velocity=escape_velocity, gamma=gamma, projectile_mass=cp1.m,
         target_water_fraction=target_wmf, projectile_water_fraction=projectile_wmf)
     print(water_ret, stone_ret)
@@ -118,14 +128,19 @@ def merge_particles(sim: Simulation, ed: ExtraData):
     merged_planet.r = radius(merged_planet.m, final_wmf) / astronomical_unit
     ed.pdata[hash.value] = ParticleData(water_mass_fraction=final_wmf)
 
-    ed.tree.add(cp1, cp2, merged_planet)
+    meta["total_mass"] = total_mass
+    meta["final_wmf"] = final_wmf
+    meta["final_radius"] = merged_planet.r
+    meta["target_wmf"] = target_wmf
+    meta["projectile_wmf"] = projectile_wmf
+    ed.tree.add(cp1, cp2, merged_planet, meta)
 
-    cp1_hash=cp1.hash
-    cp2_hash=cp2.hash
+    cp1_hash = cp1.hash
+    cp2_hash = cp2.hash
 
     # don't use cp1 and cp2 from now on as they will change
 
-    print("removing",cp1_hash.value,cp2_hash.value)
+    print("removing", cp1_hash.value, cp2_hash.value)
     sim.remove(hash=cp1_hash)
     sim.remove(hash=cp2_hash)
     sim.add(merged_planet)
