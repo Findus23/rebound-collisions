@@ -65,7 +65,8 @@ def get_mass_fractions(alpha, velocity_original, escape_velocity, gamma, project
     water_retention = clamp(water_retention, 0, 1)
     mass_retention = clamp(mass_retention, 0, 1)
 
-    metadata = {"water_retention": water_retention, "mass_retention": mass_retention, "testinput": testinput,
+    metadata = {"water_retention": water_retention, "mass_retention": mass_retention,
+                "testinput": [alpha, velocity, projectile_mass, gamma],
                 "velocity_si": velocity_si, "escape_velocity": escape_velocity, "orig_velocity": orig_velocity}
 
     return water_retention, mass_retention, metadata

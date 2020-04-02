@@ -17,9 +17,9 @@ sim = Simulation()
 fn = filename_from_argv()
 
 sim.units = ('yr', 'AU', 'kg')
-# sim.boundary = "open"
-# boxsize = 20
-# sim.configure_box(boxsize)
+sim.boundary = "open"
+boxsize = 20
+sim.configure_box(boxsize)
 # sim.integrator = "mercurius"
 # sim.dt = 1e-3
 # sim.ri_whfast.safe_mode = 0
@@ -56,7 +56,7 @@ with open("initcon/conditions.input") as f:
         sim.add(part)
 
         i += 1
-        if i == 7:  # only use 29 objects to make results comparable with lie-simulation
+        if i == 29:  # only use 29 objects to make results comparable with lie-simulation
             break
 
 print(sim.N)
@@ -66,11 +66,11 @@ print(sim.N)
 
 max_n = sim.N
 print("start")
-tmax = 1e6
-savesteps = 3000
+tmax = 5e6
+savesteps = 6000
 times = np.linspace(0., tmax, savesteps)
 sim.move_to_com()
-sim.exit_max_distance = 15
+# sim.exit_max_distance = 15
 
 extradata.meta.tmax = tmax
 extradata.meta.savesteps = savesteps
@@ -90,8 +90,8 @@ for i, t in enumerate(times, start=1):
         print(merc.mode)
     except Collision:
         merge_particles(sim, extradata)
-    except Escape:
-        print("something escaped")
+    # except Escape:
+    #     print("something escaped")
     print(f"{i / savesteps * 100:.2f}% ({sim.N})")
     sim.simulationarchive_snapshot(str(fn.with_suffix(".bin")))
     extradata.meta.walltime = time.perf_counter() - start

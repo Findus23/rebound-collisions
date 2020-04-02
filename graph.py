@@ -7,7 +7,7 @@ ed = ExtraData.load(filename_from_argv().with_suffix(".extra.json"))
 
 dot = Digraph(comment='Collisions')
 for merged, originals in ed.tree._tree.items():
-    for parent in originals:
+    for parent in originals["parents"]:
         dot.edge(str(parent), str(merged))
 
 dot.render('graph.gv', view=True)
