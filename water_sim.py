@@ -21,7 +21,7 @@ sim.boundary = "open"
 boxsize = 100
 sim.configure_box(boxsize)
 # sim.integrator = "mercurius"
-# sim.dt = 1e-3
+# sim.dt = 1e-2
 # sim.ri_whfast.safe_mode = 0
 sim.collision = "direct"
 # sim.ri_mercurius.hillfac = 3.
