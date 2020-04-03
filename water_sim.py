@@ -2,7 +2,7 @@ import time
 from math import radians
 
 import numpy as np
-from rebound import Simulation, Particle, Collision, Escape, reb_simulation_integrator_mercurius
+from rebound import Simulation, Particle, Collision, reb_simulation_integrator_mercurius, NoParticles
 from scipy.constants import astronomical_unit
 
 from extradata import ExtraData, ParticleData
@@ -18,7 +18,7 @@ fn = filename_from_argv()
 
 sim.units = ('yr', 'AU', 'kg')
 sim.boundary = "open"
-boxsize = 20
+boxsize = 100
 sim.configure_box(boxsize)
 # sim.integrator = "mercurius"
 # sim.dt = 1e-3
@@ -75,7 +75,7 @@ sim.move_to_com()
 extradata.meta.tmax = tmax
 extradata.meta.savesteps = savesteps
 extradata.meta.max_n = max_n
-
+abort = False
 try:
     fn.with_suffix(".bin").unlink()
 except OSError:
@@ -86,10 +86,12 @@ for i, t in enumerate(times, start=1):
         sim.integrate(t)
         print(sim.dt)
         merc: reb_simulation_integrator_mercurius = sim.ri_mercurius
-        print(merc._encounterN)
-        print(merc.mode)
+        print(t)
     except Collision:
         merge_particles(sim, extradata)
+    except NoParticles:
+        print("No Particles left")
+        abort = True
     # except Escape:
     #     print("something escaped")
     print(f"{i / savesteps * 100:.2f}% ({sim.N})")
@@ -99,6 +101,9 @@ for i, t in enumerate(times, start=1):
     extradata.meta.current_time = t
     extradata.meta.current_steps = i
     extradata.save(fn.with_suffix(".extra.json"))
+
+    if abort:
+        exit(1)
 
 # OrbitPlot(sim,slices=1,color=True)
 # plt.show()
