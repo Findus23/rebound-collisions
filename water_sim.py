@@ -20,8 +20,8 @@ sim.units = ('yr', 'AU', 'kg')
 sim.boundary = "open"
 boxsize = 100
 sim.configure_box(boxsize)
-# sim.integrator = "mercurius"
-# sim.dt = 1e-2
+sim.integrator = "mercurius"
+sim.dt = 1e-2
 # sim.ri_whfast.safe_mode = 0
 sim.collision = "direct"
 # sim.ri_mercurius.hillfac = 3.
@@ -66,8 +66,8 @@ print(sim.N)
 
 max_n = sim.N
 print("start")
-tmax = 5e6
-savesteps = 6000
+tmax = 1e8
+savesteps = 20000
 times = np.linspace(0., tmax, savesteps)
 sim.move_to_com()
 # sim.exit_max_distance = 15
