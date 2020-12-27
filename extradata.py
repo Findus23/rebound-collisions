@@ -12,7 +12,7 @@ class ExtraData:
         self.tree = CollisionTree()
         self.pdata: Dict[int, ParticleData] = {}
         self.meta = Meta()
-        self.energy = EnergyConsercation()
+        self.energy = EnergyConservation()
 
     def save(self, filename: Path):
         pdata = {}
@@ -76,7 +76,7 @@ class CollisionTree:
         self._tree = tree
 
 
-class EnergyConsercation:
+class EnergyConservation:
     def __init__(self):
         self._dEs = []
         self.initial_energy = None
