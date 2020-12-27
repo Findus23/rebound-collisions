@@ -12,6 +12,7 @@ class ExtraData:
         self.tree = CollisionTree()
         self.pdata: Dict[int, ParticleData] = {}
         self.meta = Meta()
+        self.energy = EnergyConsercation()
 
     def save(self, filename: Path):
         pdata = {}
@@ -22,7 +23,8 @@ class ExtraData:
             json.dump({
                 "meta": self.meta.save(),
                 "pdata": pdata,
-                "tree": self.tree.save()
+                "tree": self.tree.save(),
+                "dEs": self.energy._dEs
             }, f, indent=2)
 
     @classmethod
@@ -33,9 +35,10 @@ class ExtraData:
         self.meta = Meta(**data["meta"])
 
         self.tree.load(data["tree"])
+        # self.tree._dEs = data["dEs"]
 
         for k, v in data["pdata"].items():
-            self.pdata[k] = ParticleData(**v)
+            self.pdata[int(k)] = ParticleData(**v)
 
         return self
 
@@ -71,3 +74,16 @@ class CollisionTree:
 
     def load(self, tree):
         self._tree = tree
+
+
+class EnergyConsercation:
+    def __init__(self):
+        self._dEs = []
+        self.initial_energy = None
+
+    def set_initial_energy(self, initial_energy: float) -> None:
+        self.initial_energy = initial_energy
+
+    def add_energy_value(self, energy: float) -> None:
+        dE = abs((energy - self.initial_energy) / self.initial_energy)
+        self._dEs.append(dE)
