@@ -1,4 +1,5 @@
 import sys
+from pathlib import Path
 from typing import List
 
 import numpy as np
@@ -16,7 +17,7 @@ from bac.simulation_list import SimulationList
 from bac.CustomScaler import CustomScaler
 from bac.interpolators.rbf import RbfInterpolator
 
-simulations = SimulationList.jsonlines_load()
+simulations = SimulationList.jsonlines_load(Path("./bac/save.jsonl"))
 
 scaler = CustomScaler()
 scaler.fit(simulations.X)
@@ -79,7 +80,7 @@ def merge_particles(sim: Simulation, ed: ExtraData):
     for p in sim.particles:
         # print(p.lastcollision, sim.t)
         # if p.lastcollision == sim.t:
-        if p.lastcollision >= sim.t - 1:
+        if p.lastcollision >= sim.t - sim.dt:
             collided.append(p)
     # if not collided:
     #     print("empty collision")
@@ -121,8 +122,7 @@ def merge_particles(sim: Simulation, ed: ExtraData):
     total_mass = water_mass + stone_mass
     final_wmf = water_mass / total_mass
     print(final_wmf)
-
-    merged_planet = (cp1 * cp1.m + cp2 * cp2.m) / (cp1.m + cp2.m)
+    merged_planet = (cp1 * cp1.m + cp2 * cp2.m) / total_mass
     merged_planet.m = total_mass
     merged_planet.hash = hash
 
@@ -145,3 +145,20 @@ def merge_particles(sim: Simulation, ed: ExtraData):
     sim.remove(hash=cp1_hash)
     sim.remove(hash=cp2_hash)
     sim.add(merged_planet)
+
+    sim.move_to_com()
+    sim.ri_whfast.recalculate_coordinates_this_timestep
+    sim.integrator_synchronize()
+
+
+def handle_escape(sim: Simulation, ed: ExtraData):
+    for j in range(sim.N):
+        p = sim.particles[j]
+        d2 = p.x * p.x + p.y * p.y + p.z * p.z
+        if d2 > sim.exit_max_distance ** 2:
+            h = p.hash
+    sim.remove(hash=h)
+
+    sim.move_to_com()
+    sim.ri_whfast.recalculate_coordinates_this_timestep
+    sim.integrator_synchronize()
