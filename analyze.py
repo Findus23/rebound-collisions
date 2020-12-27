@@ -17,7 +17,8 @@ for i, t in enumerate(times):
         sim = sa.getSimulation(t=t)
     except ValueError:
         print("save is incomplete")
-        break
+        continue
+        # break
     for pn in range(1, sim.N):
         part: Particle = sim.particles[pn]
         hash = part.hash.value
