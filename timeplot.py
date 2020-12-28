@@ -1,3 +1,6 @@
+import argparse
+from collections import namedtuple
+
 import matplotlib
 import matplotlib.animation as animation
 import matplotlib.pyplot as plt
@@ -11,32 +14,43 @@ from rebound import SimulationArchive, Particle
 from extradata import ExtraData, ParticleData
 from utils import filename_from_argv
 
-matplotlib.use('Qt4Agg')
-plt.style.use('dark_background')
-fps = 5
-duration = 10  # s
-total_frames = fps * duration
-logtime = False
+
+class MyProgramArgs(argparse.Namespace):
+    save_video: bool
+    fps: int
+    duration: int
+    y_axis: str
+
+
+matplotlib.use("Qt5Agg")
+plt.style.use("dark_background")
 cmap: Colormap = matplotlib.cm.get_cmap('Blues')
+# fps = 5
+# duration = 10  # s
+logtime = False  # TODO: support logarithmic time
 
 
-def update_line(num: int, sa: SimulationArchive, ed: ExtraData, dots: PathCollection, title: Text):
+def update_line(num: int, args: MyProgramArgs, sa: SimulationArchive, ed: ExtraData, dots: PathCollection, title: Text):
     # line = num * int((len(data) / total_frames))
+    total_frames = args.fps * args.duration
     # print(line, num)
     if logtime:
         timestep = total_frames
-
     else:
         timestep = ed.meta.current_time / total_frames
         # timestep = 10e6 / total_frames
         time = num * timestep
     print(time)
     sim = sa.getSimulation(t=time)
-    title.set_text(f"({len(sim.particles)}) {time / 1e6:.2f}M Years")
+    if time < 1e3:
+        timestr = f"{time:.0f}"
+    elif time < 1e6:
+        timestr = f"{time / 1e3:.2f}K"
+    else:
+        timestr = f"{time / 1e6:.2f}M"
+    title.set_text(f"({len(sim.particles)}) {timestr} Years")
 
     p: Particle
-    a = [p.a for p in sim.particles[1:]]
-    e = [p.e for p in sim.particles[1:]]
 
     water_fractions = []
     for p in sim.particles[3:]:
@@ -49,7 +63,16 @@ def update_line(num: int, sa: SimulationArchive, ed: ExtraData, dots: PathCollec
         water_fractions.append(wf)
     # a, e, i, M, M_rat = data[line]
     # title.set_text(f"({len(a)}) {ages[line]:.2f}K Years")
-    bla = np.array([a, e])
+    a = [p.a for p in sim.particles[1:]]
+
+    if args.y_axis == "e":
+        bla = np.array([a, [p.e for p in sim.particles[1:]]])
+    elif args.y_axis == "i":
+        bla = np.array([a, [p.inc for p in sim.particles[1:]]])
+    elif args.y_axis == "Omega":
+        bla = np.array([a, [p.Omega for p in sim.particles[1:]]])
+    else:
+        raise ValueError("invalid y-axis")
     dots.set_offsets(bla.T)
     water_fractions = np.array(water_fractions)
     color_val = (np.log10(water_fractions) + 5) / 5
@@ -57,38 +80,72 @@ def update_line(num: int, sa: SimulationArchive, ed: ExtraData, dots: PathCollec
     colors = cmap(color_val)
     print(colors)
     dots.set_color(colors)
-    plt.savefig("tmp/" + str(num) + ".pdf",transparent=True)
+    # plt.savefig("tmp/" + str(num) + ".pdf",transparent=True)
     return dots, title
 
 
-fig1 = plt.figure()
+def main(args: MyProgramArgs):
+    total_frames = args.fps * args.duration
 
-l: PathCollection = plt.scatter([1], [1])
+    logtime = False
+    cmap: Colormap = matplotlib.cm.get_cmap("Blues")
 
-fn = filename_from_argv()
-sa = SimulationArchive(str(fn.with_suffix(".bin")))
-ed = ExtraData.load(fn.with_suffix(".extra.json"))
+    fig1 = plt.figure()
 
-plt.xlim(0, 10)
-plt.xlabel("a")
-title: Text = plt.title("0")
-plt.ylim(-0.1, 1)  # e
-plt.ylabel("e")
+    l: PathCollection = plt.scatter([1], [1])
 
-# plt.ylim(0, 90)  # i
-# plt.ylabel("i")
+    fn = filename_from_argv()
+    sa = SimulationArchive(str(fn.with_suffix(".bin")))
+    ed = ExtraData.load(fn.with_suffix(".extra.json"))
 
-# plt.yscale('log')
-# plt.ylim(1e-7,1e-3)
+    plt.xlim(0, 10)
+    plt.xlabel("a")
+    title: Text = plt.title("0")
 
-# plt.ylim(-0.05, 0.2)  # i
-# plt.ylabel("water_fraction")
+    if args.y_axis == "e":
+        plt.ylim(-0.1, 1)  # e
+        plt.ylabel("e")
+    elif args.y_axis == "i":
+        plt.ylim(0, 90)  # i
+        plt.ylabel("i")
+    elif args.y_axis == "Omega":
+        plt.ylim(0, 360)  # i
+        plt.ylabel("Omega")
 
-fig1.colorbar(ScalarMappable(norm=Normalize(vmin=-5, vmax=0), cmap=cmap), label="log(water fraction)")
+    # plt.yscale("log")
+    # plt.ylim(1e-7,1e-3)
 
-plt.tight_layout()
+    # plt.ylim(-0.05, 0.2)  # i
+    # plt.ylabel("water_fraction")
 
-line_ani = animation.FuncAnimation(fig1, update_line, total_frames, fargs=(sa, ed, l, title),
-                                   interval=1000 / fps, repeat=False)
-line_ani.save(str(fn.with_suffix(".mp4")), dpi=300)
-# plt.show()
+    fig1.colorbar(ScalarMappable(norm=Normalize(vmin=-5, vmax=0), cmap=cmap), label="log(water fraction)")
+
+    plt.tight_layout()
+    line_ani = animation.FuncAnimation(fig1, update_line, total_frames, fargs=(args, sa, ed, l, title),
+                                       interval=1000 / args.fps, repeat=False)
+    if args.save_video:
+        line_ani.save(str(fn.with_suffix(".mp4")), dpi=300)
+    else:
+        plt.show()
+
+
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser(
+        description="create a video showing ",
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter
+    )
+    parser.add_argument("file")
+    parser.add_argument("-v", "--save-video", action="store_true",
+                        help="save video as .mp4 file")
+    parser.add_argument("--fps", default=5, type=int,
+                        help="frames per second")
+    parser.add_argument("--duration", default=10, type=int,
+                        help="duration in seconds")
+    parser.add_argument("--y-axis", default="e", type=str, choices=["e", "i", "Omega"],
+                        help="what to show on the y-axis")
+    ArgNamespace = namedtuple('ArgNamespace', ['some_arg', 'another_arg'])
+    args = parser.parse_args()
+    print(vars(args))
+    print(args.save_video)
+    # noinspection PyTypeChecker
+    main(args)

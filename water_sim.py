@@ -58,7 +58,13 @@ with open("initcon/conditions_many.input") as f:
         if len(columns) > 7:
             # print(columns[7:])
             cmf, mmf, wmf = columns[7:]
-            assert cmf + mmf + wmf == 1
+            total_fractions = cmf + mmf + wmf
+            if total_fractions != 1:
+                diff = 1 - total_fractions
+                print(f"fractions don't add up by {diff}")
+                print("adding rest to cmf")
+                cmf += diff
+            assert cmf + mmf + wmf - 1 <= 1e-10
             extradata.pdata[hash.value] = ParticleData(water_mass_fraction=wmf)
         else:
             wmf = 0
@@ -113,7 +119,7 @@ for i, t in enumerate(times, start=1):
     except Collision:
         merge_particles(sim, extradata)
     except Escape:
-        handle_escape(sim,extradata)
+        handle_escape(sim, extradata)
     except NoParticles:
         print("No Particles left")
         abort = True
