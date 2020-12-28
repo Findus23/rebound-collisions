@@ -18,10 +18,13 @@ def clamp(n: float, smallest: float, largest: float) -> float:
     return max(smallest, min(n, largest))
 
 
-def filename_from_argv() -> Path:
+def filename_from_argv(argument: str = None) -> Path:
     if len(argv) < 2:
         raise ValueError("specify filename")
-    fn = argv[1]
+    if argument:
+        fn = argument
+    else:
+        fn = argv[1]
     fn = fn.replace(".bin", "").replace(".meta.json", "")
     if fn.endswith("."):
         fn = fn[:-1]
