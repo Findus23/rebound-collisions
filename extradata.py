@@ -6,48 +6,11 @@ from typing import Dict
 from rebound import Particle
 
 
-class ExtraData:
-
-    def __init__(self):
-        self.tree = CollisionTree()
-        self.pdata: Dict[int, ParticleData] = {}
-        self.meta = Meta()
-        self.energy = EnergyConservation()
-
-    def save(self, filename: Path):
-        pdata = {}
-        for k, v in self.pdata.items():
-            pdata[k] = v.__dict__
-
-        with filename.open("w") as f:
-            json.dump({
-                "meta": self.meta.save(),
-                "pdata": pdata,
-                "tree": self.tree.save(),
-                "energy": self.energy.save()
-            }, f, indent=2)
-
-    @classmethod
-    def load(cls, filename: Path):
-        with filename.open() as f:
-            data = json.load(f)
-        self = cls()
-        self.meta = Meta(**data["meta"])
-
-        self.tree.load(data["tree"])
-        self.energy.load(data["energy"])
-        # self.tree._dEs = data["dEs"]
-
-        for k, v in data["pdata"].items():
-            self.pdata[int(k)] = ParticleData(**v)
-
-        return self
-
-
 @dataclass
 class ParticleData:
     water_mass_fraction: float
     type: str
+    active: bool = True
 
 
 @dataclass
@@ -100,3 +63,44 @@ class EnergyConservation:
     def load(self, data):
         self.initial_energy = data["initial_energy"]
         self._dEs = data["dEs"]
+
+
+class ExtraData:
+
+    def __init__(self):
+        self.tree = CollisionTree()
+        self.pdata: Dict[int, ParticleData] = {}
+        self.meta = Meta()
+        self.energy = EnergyConservation()
+
+    def save(self, filename: Path):
+        pdata = {}
+        for k, v in self.pdata.items():
+            pdata[k] = v.__dict__
+
+        with filename.open("w") as f:
+            json.dump({
+                "meta": self.meta.save(),
+                "pdata": pdata,
+                "tree": self.tree.save(),
+                "energy": self.energy.save()
+            }, f, indent=2)
+
+    @classmethod
+    def load(cls, filename: Path):
+        with filename.open() as f:
+            data = json.load(f)
+        self = cls()
+        self.meta = Meta(**data["meta"])
+
+        self.tree.load(data["tree"])
+        self.energy.load(data["energy"])
+        # self.tree._dEs = data["dEs"]
+
+        for k, v in data["pdata"].items():
+            self.pdata[int(k)] = ParticleData(**v)
+
+        return self
+
+    def pd(self, particle: Particle) -> ParticleData:
+        return self.pdata[particle.hash]

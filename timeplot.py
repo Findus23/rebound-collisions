@@ -55,7 +55,7 @@ def update_line(num: int, args: MyProgramArgs, sa: SimulationArchive, ed: ExtraD
     water_fractions = []
     for p in sim.particles[3:]:
         # try:
-        pd: ParticleData = ed.pdata[p.hash.value]
+        pd: ParticleData = ed.pd(p)
         wf = pd.water_mass_fraction
         # except KeyError:  # gas planet
         #     print(p.hash.value)

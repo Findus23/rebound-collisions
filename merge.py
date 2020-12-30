@@ -87,43 +87,63 @@ def merge_particles(sim: Simulation, ed: ExtraData):
     #     return
     print(collided)
     assert len(collided) == 2, "More or fewer than 2 objects collided with each other"
+
+    # the assignment to cp1 or cp2 is mostly random
+    # (cp1 is the one with a lower index in sim.particles)
+    # naming them projectile or target is therefore also arbitrary
     cp1: Particle  # projectile
     cp2: Particle  # target
     cp1, cp2 = collided
 
+    # just called the more massive one the main particle to keep its type/name
+    # Sun<->Protoplanet -> Sun
     main_particle = cp1.m if cp1.m > cp2.m else cp2
 
-    projectile_wmf = ed.pdata[cp1.hash.value].water_mass_fraction
-    target_wmf = ed.pdata[cp2.hash.value].water_mass_fraction
+    projectile_wmf = ed.pd(cp1).water_mass_fraction
+    target_wmf = ed.pd(cp2).water_mass_fraction
 
+    # get the velocities, velocity differences and unit vector as numpy arrays
+    # all units are in sytem units (so AU/year)
     v1 = np.array(cp1.vxyz)
     v2 = np.array(cp2.vxyz)
-    vdiff = linalg.norm(v2 - v1)  # AU/year
+    vdiff = linalg.norm(v2 - v1)
     v1_u = v1 / linalg.norm(v1)
     v2_u = v2 / linalg.norm(v2)
+    # get angle between the two velocities as degrees
     # https://stackoverflow.com/a/13849249/4398037
     ang = np.degrees(np.arccos(np.clip(np.dot(v1_u, v2_u), -1.0, 1.0)))
 
+    # get mass fraction
+    # if it is >1 it will be inverted during interpolation
     gamma = cp1.m / cp2.m
 
+    # calculate mutual escape velocity (for norming the velocities in the interpolation)
     escape_velocity = sqrt(2 * G * (cp1.m + cp2.m) / ((cp1.r + cp2.r) * astronomical_unit))
 
     print("interpolating")
+
+    # let interpolation calculate water and mass retention fraction
+    # meta is just a bunch of intermediate results that will be logged to help
+    # understand the collisions better
     water_ret, stone_ret, meta = get_mass_fractions(
         alpha=ang, velocity_original=vdiff, escape_velocity=escape_velocity, gamma=gamma, projectile_mass=cp1.m,
         target_water_fraction=target_wmf, projectile_water_fraction=projectile_wmf)
+    print("interpolation finished")
     print(water_ret, stone_ret)
-    hash = unique_hash()
 
+    hash = unique_hash()  # hash for newly created particle
+
+    # handle loss of water and core mass
     water_mass = cp1.m * projectile_wmf + cp2.m * target_wmf
     stone_mass = cp1.m + cp2.m - water_mass
 
     water_mass *= water_ret
-    stone_ret *= stone_ret
+    stone_mass *= stone_ret
 
     total_mass = water_mass + stone_mass
     final_wmf = water_mass / total_mass
     print(final_wmf)
+    # create new object preserving momentum
     merged_planet = (cp1 * cp1.m + cp2 * cp2.m) / total_mass
     merged_planet.m = total_mass
     merged_planet.hash = hash
@@ -131,7 +151,7 @@ def merge_particles(sim: Simulation, ed: ExtraData):
     merged_planet.r = radius(merged_planet.m, final_wmf) / astronomical_unit
     ed.pdata[hash.value] = ParticleData(
         water_mass_fraction=final_wmf,
-        type=ed.pdata[main_particle.hash.value].type
+        type=ed.pd(main_particle).type
     )
 
     meta["total_mass"] = total_mass
@@ -139,6 +159,7 @@ def merge_particles(sim: Simulation, ed: ExtraData):
     meta["final_radius"] = merged_planet.r
     meta["target_wmf"] = target_wmf
     meta["projectile_wmf"] = projectile_wmf
+    meta["time"] = sim.t
     ed.tree.add(cp1, cp2, merged_planet, meta)
 
     cp1_hash = cp1.hash
@@ -157,11 +178,14 @@ def merge_particles(sim: Simulation, ed: ExtraData):
 
 
 def handle_escape(sim: Simulation, ed: ExtraData):
-    for j in range(sim.N):
-        p = sim.particles[j]
-        d2 = p.x * p.x + p.y * p.y + p.z * p.z
-        if d2 > sim.exit_max_distance ** 2:
+    h = None
+    p: Particle
+    for p in sim.particles:
+        distance_squared = p.x ** 2 + p.y ** 2 + p.z ** 2
+        if distance_squared > sim.exit_max_distance ** 2:
             h = p.hash
+    if not h:
+        raise RuntimeError("Escape without escaping particle")
     sim.remove(hash=h)
 
     sim.move_to_com()
