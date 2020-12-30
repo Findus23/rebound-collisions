@@ -13,6 +13,7 @@ ipywidgets = "^7.5.1"
 reboundx = "^3.0.4"
 scipy = "^1.4.1"
 graphviz = "^0.16"
+py-spy = "^0.3.3"
 
 [tool.poetry.dev-dependencies]
 

@@ -91,6 +91,8 @@ def merge_particles(sim: Simulation, ed: ExtraData):
     cp2: Particle  # target
     cp1, cp2 = collided
 
+    main_particle = cp1.m if cp1.m > cp2.m else cp2
+
     projectile_wmf = ed.pdata[cp1.hash.value].water_mass_fraction
     target_wmf = ed.pdata[cp2.hash.value].water_mass_fraction
 
@@ -127,7 +129,10 @@ def merge_particles(sim: Simulation, ed: ExtraData):
     merged_planet.hash = hash
 
     merged_planet.r = radius(merged_planet.m, final_wmf) / astronomical_unit
-    ed.pdata[hash.value] = ParticleData(water_mass_fraction=final_wmf)
+    ed.pdata[hash.value] = ParticleData(
+        water_mass_fraction=final_wmf,
+        type=ed.pdata[main_particle.hash.value].type
+    )
 
     meta["total_mass"] = total_mass
     meta["final_wmf"] = final_wmf
@@ -147,7 +152,7 @@ def merge_particles(sim: Simulation, ed: ExtraData):
     sim.add(merged_planet)
 
     sim.move_to_com()
-    sim.ri_whfast.recalculate_coordinates_this_timestep
+    sim.ri_whfast.recalculate_coordinates_this_timestep = 1
     sim.integrator_synchronize()
 
 
@@ -160,5 +165,5 @@ def handle_escape(sim: Simulation, ed: ExtraData):
     sim.remove(hash=h)
 
     sim.move_to_com()
-    sim.ri_whfast.recalculate_coordinates_this_timestep
+    sim.ri_whfast.recalculate_coordinates_this_timestep = 1
     sim.integrator_synchronize()

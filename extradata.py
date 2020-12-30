@@ -24,7 +24,7 @@ class ExtraData:
                 "meta": self.meta.save(),
                 "pdata": pdata,
                 "tree": self.tree.save(),
-                "dEs": self.energy._dEs
+                "energy": self.energy.save()
             }, f, indent=2)
 
     @classmethod
@@ -35,6 +35,7 @@ class ExtraData:
         self.meta = Meta(**data["meta"])
 
         self.tree.load(data["tree"])
+        self.energy.load(data["energy"])
         # self.tree._dEs = data["dEs"]
 
         for k, v in data["pdata"].items():
@@ -46,17 +47,19 @@ class ExtraData:
 @dataclass
 class ParticleData:
     water_mass_fraction: float
+    type: str
 
 
 @dataclass
 class Meta:
     tmax: float = None
-    savesteps: int = None
+    num_savesteps: int = None
+    per_savestep: float = None
     max_n: int = None
     walltime: int = None  # seconds
     cputime: int = None  # seconds
     current_time: float = None
-    current_steps: float = None
+    perfect_merging: bool = None
 
     def save(self):
         return self.__dict__
@@ -87,3 +90,13 @@ class EnergyConservation:
     def add_energy_value(self, energy: float) -> None:
         dE = abs((energy - self.initial_energy) / self.initial_energy)
         self._dEs.append(dE)
+
+    def save(self):
+        return {
+            "initial_energy": self.initial_energy,
+            "dEs": self._dEs
+        }
+
+    def load(self, data):
+        self.initial_energy = data["initial_energy"]
+        self._dEs = data["dEs"]
