@@ -1,5 +1,7 @@
+import re
 import time
 from math import radians
+from pathlib import Path
 from shutil import copy
 
 from rebound import Simulation, Particle, reb_simulation_integrator_mercurius, NoParticles, Collision, Escape, \
@@ -13,6 +15,7 @@ from utils import unique_hash, filename_from_argv, innermost_period, total_impul
 
 MIN_TIMESTEP_PER_ORBIT = 20
 PERFECT_MERGING = False
+INITCON_FILE = Path("initcon/conditions_many.input")
 
 fn = filename_from_argv()
 start = time.perf_counter()
@@ -47,59 +50,70 @@ if not fn.with_suffix(".bin").exists():
     extradata.meta.num_savesteps = num_savesteps
     extradata.meta.perfect_merging = PERFECT_MERGING
 
-    with open("initcon/conditions.input") as f:
-        for line in f:
-            if line.startswith("#") or line.startswith("ERROR") or line == "\n":
-                continue
-            columns = list(map(float, line.split()))
-            hash = unique_hash()
-            if len(columns) > 7:
-                # print(columns[7:])
-                cmf, mmf, wmf = columns[7:]
-                total_fractions = cmf + mmf + wmf
-                if total_fractions != 1:
-                    diff = 1 - total_fractions
-                    print(f"fractions don't add up by {diff}")
-                    print("adding rest to cmf")
-                    cmf += diff
-                assert cmf + mmf + wmf - 1 <= 1e-10
-                object_type = "planetesimal"  # TODO: differentiate between planetesimal and embryo
+    initcon = INITCON_FILE.read_text()
+    print(initcon)
+    num_embryos = int(re.search(r"Generated (\d+) minor bodies", initcon, re.MULTILINE).group(1))
+    num_planetesimals = int(re.search(r"Generated (\d+) small bodies", initcon, re.MULTILINE).group(1))
+    # TODO: before using N_active we need code that can toogle the active status of a particle
+    # sim.N_active = num_embryos + 3
+    i = 1
+    for line in initcon.split("\n"):
+        if line.startswith("#") or line.startswith("ERROR") or line == "\n" or not line:
+            continue
+        columns = list(map(float, line.split()))
+        hash = unique_hash()
+        if len(columns) > 7:
+            # print(columns[7:])
+            cmf, mmf, wmf = columns[7:]
+            total_fractions = cmf + mmf + wmf
+            if total_fractions != 1:
+                diff = 1 - total_fractions
+                print(f"fractions don't add up by {diff}")
+                print("adding rest to cmf")
+                cmf += diff
+            assert cmf + mmf + wmf - 1 <= 1e-10
+            if i > num_embryos + 3:
+                object_type = "planetesimal"
             else:
-                wmf = mmf = 0
-                cmf = 1
-                if columns[1] == 0:
-                    object_type = "sun"
-                else:
-                    object_type = "gas giant"
-            extradata.pdata[hash.value] = ParticleData(
-                water_mass_fraction=wmf,
-                type=object_type
+                object_type = "embryo"
+        else:
+            wmf = mmf = 0
+            cmf = 1
+            if columns[1] == 0:
+                object_type = "sun"
+            else:
+                object_type = "gas giant"
+        extradata.pdata[hash.value] = ParticleData(
+            water_mass_fraction=wmf,
+            type=object_type
+        )
+
+        if columns[1] == 0:  # that should not be needed, but nevertheless is
+            part = Particle(m=columns[0], hash=hash)
+        else:
+            part = Particle(
+                m=columns[0], a=columns[1], e=columns[2],
+                inc=radians(columns[3]), omega=columns[4],
+                Omega=columns[5], M=columns[6],
+                simulation=sim,
+                hash=hash,
+                r=radius(columns[0], wmf) / astronomical_unit
             )
-
-            if columns[1] == 0:  # that should not be needed, but nevertheless is
-                part = Particle(m=columns[0], hash=hash)
-            else:
-                part = Particle(
-                    m=columns[0], a=columns[1], e=columns[2],
-                    inc=radians(columns[3]), omega=columns[4],
-                    Omega=columns[5], M=columns[6],
-                    simulation=sim,
-                    hash=hash,
-                    r=radius(columns[0], wmf) / astronomical_unit
-                )
-            sim.add(part)
-
+        sim.add(part)
+        i += 1
+    assert sim.N == num_planetesimals + num_embryos + 3
     sim.move_to_com()
-    max_n = sim.N
-    extradata.meta.max_n = max_n
+    extradata.meta.initial_N = sim.N
+    extradata.meta.initial_N_planetesimal = num_planetesimals
+    extradata.meta.initial_N_embryo = num_embryos
     extradata.energy.set_initial_energy(sim.calculate_energy())
     cputimeoffset = walltimeoffset = 0
     t = 0
 
 
 else:
-    copy(fn.with_suffix(".bin"),fn.with_suffix(".bak.bin"))
-    copy(fn.with_suffix(".extra.json"),fn.with_suffix(".extra.json.bin"))
+    copy(fn.with_suffix(".bin"), fn.with_suffix(".bak.bin"))
+    copy(fn.with_suffix(".extra.json"), fn.with_suffix(".extra.json.bin"))
     sa = SimulationArchive(str(fn.with_suffix(".bin")))
     extradata = ExtraData.load(fn.with_suffix(".extra.json"))
     tmax = extradata.meta.tmax

@@ -12,7 +12,6 @@ from scipy.constants import astronomical_unit, year
 class ParticleData:
     water_mass_fraction: float
     type: str
-    active: bool = True
 
 
 @dataclass
@@ -57,7 +56,9 @@ class Meta:
     tmax: float = None
     num_savesteps: int = None
     per_savestep: float = None
-    max_n: int = None
+    initial_N: int = None
+    initial_N_planetesimal: int = None
+    initial_N_embryo: int = None
     walltime: int = None  # seconds
     cputime: int = None  # seconds
     current_time: float = None
