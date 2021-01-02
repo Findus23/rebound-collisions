@@ -101,7 +101,7 @@ def merge_particles(sim: Simulation, ed: ExtraData):
 
     # just called the more massive one the main particle to keep its type/name
     # Sun<->Protoplanet -> Sun
-    main_particle = cp1.m if cp1.m > cp2.m else cp2
+    main_particle = cp1 if cp1.m > cp2.m else cp2
 
     projectile_wmf = ed.pd(cp1).water_mass_fraction
     target_wmf = ed.pd(cp2).water_mass_fraction
