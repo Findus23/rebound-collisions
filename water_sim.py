@@ -1,5 +1,6 @@
 import time
 from math import radians
+from shutil import copy
 
 from rebound import Simulation, Particle, reb_simulation_integrator_mercurius, NoParticles, Collision, Escape, \
     SimulationArchive
@@ -97,6 +98,8 @@ if not fn.with_suffix(".bin").exists():
 
 
 else:
+    copy(fn.with_suffix(".bin"),fn.with_suffix(".bak.bin"))
+    copy(fn.with_suffix(".extra.json"),fn.with_suffix(".extra.json.bin"))
     sa = SimulationArchive(str(fn.with_suffix(".bin")))
     extradata = ExtraData.load(fn.with_suffix(".extra.json"))
     tmax = extradata.meta.tmax

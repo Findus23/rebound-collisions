@@ -1,9 +1,11 @@
 import json
+from copy import deepcopy
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Dict
+from typing import Dict, Tuple, List
 
 from rebound import Particle
+from scipy.constants import astronomical_unit, year
 
 
 @dataclass
@@ -11,6 +13,43 @@ class ParticleData:
     water_mass_fraction: float
     type: str
     active: bool = True
+
+
+@dataclass
+class Input:
+    alpha: float
+    velocity_original: float
+    escape_velocity: float
+    gamma: float
+    projectile_mass: float
+    target_water_fraction: float
+    projectile_water_fraction: float
+    velocity_esc: float = None
+
+    def __post_init__(self):
+        self.velocity_esc = self.velocity_si / self.escape_velocity
+
+    @property
+    def velocity_si(self):
+        return self.velocity_original * astronomical_unit / year
+
+
+@dataclass
+class CollisionMeta:
+    collision_velocities: Tuple[List[float], List[float]] = None
+    interpolation_input: List[float] = None
+    raw_water_retention: float = None
+    raw_mass_retention: float = None
+    water_retention: float = None
+    mass_retention: float = None
+    total_mass: float = None
+    final_wmf: float = None
+    final_radius: float = None
+    target_wmf: float = None
+    projectile_wmf: float = None
+    time: float = None
+    input: Input = None
+    adjusted_input: Input = None
 
 
 @dataclass
@@ -32,14 +71,35 @@ class CollisionTree:
     def __init__(self):
         self._tree = {}
 
-    def add(self, source1: Particle, source2: Particle, to: Particle, metadata: Dict):
-        self._tree[to.hash.value] = {"parents": [source1.hash.value, source2.hash.value], "meta": metadata}
+    def add(self, source1: Particle, source2: Particle, to: Particle, metadata: CollisionMeta):
+        data = {"parents": [source1.hash.value, source2.hash.value], "meta": metadata}
+        self._tree[to.hash.value] = data
 
     def save(self):
-        return self._tree
+        savetree = {}
+        tmpcopy = deepcopy(self._tree)
+        for key, data in tmpcopy.items():
+            metadata = data["meta"]
+            metadata = metadata.__dict__
+            metadata["input"] = metadata["input"].__dict__
+            metadata["adjusted_input"] = metadata["adjusted_input"].__dict__
+            data["meta"] = metadata
+            savetree[key] = data
+        return savetree
 
     def load(self, tree):
-        self._tree = tree
+        self._tree = {}
+        for key, data in tree.items():
+            metadata = data["meta"]
+            metadata["input"] = Input(**metadata["input"])
+            metadata["adjusted_input"] = Input(**metadata["adjusted_input"])
+
+            metadata = CollisionMeta(**metadata)
+            data["meta"] = metadata
+            self._tree[key] = data
+
+    def get_tree(self) -> Dict:
+        return self._tree
 
 
 class EnergyConservation:

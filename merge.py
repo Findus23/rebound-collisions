@@ -1,13 +1,14 @@
 import sys
+from copy import copy
 from pathlib import Path
-from typing import List
+from typing import List, Tuple
 
 import numpy as np
 from numpy import linalg, sqrt
 from rebound import Simulation, Particle
-from scipy.constants import astronomical_unit, G, year
+from scipy.constants import astronomical_unit, G
 
-from extradata import ExtraData, ParticleData
+from extradata import ExtraData, ParticleData, CollisionMeta, Input
 from radius_utils import radius
 from utils import unique_hash, clamp
 
@@ -41,34 +42,37 @@ def interpolate(alpha, velocity, projectile_mass, gamma):
     return float(water_retention), float(mass_retention)
 
 
-def get_mass_fractions(alpha, velocity_original, escape_velocity, gamma, projectile_mass, target_water_fraction,
-                       projectile_water_fraction):
-    velocity_si = velocity_original * astronomical_unit / year
-    print("v_esc", escape_velocity)
-    velocity = velocity_si / escape_velocity
-    print("v_orig,v_si", velocity_original, velocity_si)
-    print("v", velocity)
-    if alpha > 90:
-        alpha = 180 - alpha
-    if gamma > 1:
-        gamma = 1 / gamma
-    alpha = clamp(alpha, 0, 60)
-    orig_velocity = velocity
-    velocity = clamp(velocity, 1, 5)
+def get_mass_fractions(input_data: Input) -> Tuple[float, float, CollisionMeta]:
+    print("v_esc", input_data.escape_velocity)
+    print("v_orig,v_si", input_data.velocity_original, input_data.velocity_si)
+    print("v/v_esc", input_data.velocity_esc)
+    data = copy(input_data)
+    if data.alpha > 90:
+        data.alpha = 180 - data.alpha
+    if data.gamma > 1:
+        data.gamma = 1 / data.gamma
+    data.alpha = clamp(data.alpha, 0, 60)
+    data.velocity_esc = clamp(data.velocity_esc, 1, 5)
 
     m_ceres = 9.393e+20
     m_earth = 5.9722e+24
-    projectile_mass = clamp(projectile_mass, 2 * m_ceres, 2 * m_earth)
-    gamma = clamp(gamma, 1 / 10, 1)
+    data.projectile_mass = clamp(data.projectile_mass, 2 * m_ceres, 2 * m_earth)
+    data.gamma = clamp(data.gamma, 1 / 10, 1)
 
-    water_retention, mass_retention = interpolate(alpha, velocity, projectile_mass, gamma)
+    water_retention, mass_retention = interpolate(data.alpha, data.velocity_esc, data.projectile_mass, data.gamma)
+
+    metadata = CollisionMeta()
+    metadata.interpolation_input = [data.alpha, data.velocity_esc, data.projectile_mass, data.gamma]
+    metadata.input = input_data
+    metadata.adjusted_input = data
+    metadata.raw_water_retention = water_retention
+    metadata.raw_mass_retention = mass_retention
 
     water_retention = clamp(water_retention, 0, 1)
     mass_retention = clamp(mass_retention, 0, 1)
 
-    metadata = {"water_retention": water_retention, "mass_retention": mass_retention,
-                "testinput": [alpha, velocity, projectile_mass, gamma],
-                "velocity_si": velocity_si, "escape_velocity": escape_velocity, "orig_velocity": orig_velocity}
+    metadata.water_retention = water_retention
+    metadata.mass_retention = mass_retention
 
     return water_retention, mass_retention, metadata
 
@@ -111,13 +115,15 @@ def merge_particles(sim: Simulation, ed: ExtraData):
     v2_u = v2 / linalg.norm(v2)
     # get angle between the two velocities as degrees
     # https://stackoverflow.com/a/13849249/4398037
-    ang = np.degrees(np.arccos(np.clip(np.dot(v1_u, v2_u), -1.0, 1.0)))
-
+    print(v1, v2)
+    print("angle_rad", np.arccos(np.clip(np.dot(v1_u, v2_u), -1.0, 1.0)))
+    ang = float(np.degrees(np.arccos(np.clip(np.dot(v1_u, v2_u), -1.0, 1.0))))
+    print("angle_deg", ang)
     # get mass fraction
     # if it is >1 it will be inverted during interpolation
     gamma = cp1.m / cp2.m
 
-    # calculate mutual escape velocity (for norming the velocities in the interpolation)
+    # calculate mutual escape velocity (for norming the velocities in the interpolation) in SI units
     escape_velocity = sqrt(2 * G * (cp1.m + cp2.m) / ((cp1.r + cp2.r) * astronomical_unit))
 
     print("interpolating")
@@ -125,11 +131,21 @@ def merge_particles(sim: Simulation, ed: ExtraData):
     # let interpolation calculate water and mass retention fraction
     # meta is just a bunch of intermediate results that will be logged to help
     # understand the collisions better
-    water_ret, stone_ret, meta = get_mass_fractions(
-        alpha=ang, velocity_original=vdiff, escape_velocity=escape_velocity, gamma=gamma, projectile_mass=cp1.m,
-        target_water_fraction=target_wmf, projectile_water_fraction=projectile_wmf)
+    input_data = Input(
+        alpha=ang,
+        velocity_original=vdiff,
+        escape_velocity=escape_velocity,
+        gamma=gamma,
+        projectile_mass=cp1.m,
+        target_water_fraction=target_wmf,
+        projectile_water_fraction=projectile_wmf,
+    )
+
+    water_ret, stone_ret, meta = get_mass_fractions(input_data)
     print("interpolation finished")
     print(water_ret, stone_ret)
+
+    meta.collision_velocities = (v1.tolist(), v2.tolist())
 
     hash = unique_hash()  # hash for newly created particle
 
@@ -154,12 +170,12 @@ def merge_particles(sim: Simulation, ed: ExtraData):
         type=ed.pd(main_particle).type
     )
 
-    meta["total_mass"] = total_mass
-    meta["final_wmf"] = final_wmf
-    meta["final_radius"] = merged_planet.r
-    meta["target_wmf"] = target_wmf
-    meta["projectile_wmf"] = projectile_wmf
-    meta["time"] = sim.t
+    meta.total_mass = total_mass
+    meta.final_wmf = final_wmf
+    meta.final_radius = merged_planet.r
+    meta.target_wmf = target_wmf
+    meta.projectile_wmf = projectile_wmf
+    meta.time = sim.t
     ed.tree.add(cp1, cp2, merged_planet, meta)
 
     cp1_hash = cp1.hash
