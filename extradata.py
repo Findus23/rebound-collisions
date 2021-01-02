@@ -103,4 +103,4 @@ class ExtraData:
         return self
 
     def pd(self, particle: Particle) -> ParticleData:
-        return self.pdata[particle.hash]
+        return self.pdata[particle.hash.value]
