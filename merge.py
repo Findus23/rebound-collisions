@@ -194,15 +194,16 @@ def merge_particles(sim: Simulation, ed: ExtraData):
 
 
 def handle_escape(sim: Simulation, ed: ExtraData):
-    h = None
+    escaped_particle = None
     p: Particle
     for p in sim.particles:
         distance_squared = p.x ** 2 + p.y ** 2 + p.z ** 2
         if distance_squared > sim.exit_max_distance ** 2:
-            h = p.hash
-    if not h:
+            escaped_particle = p
+    if not escaped_particle:
         raise RuntimeError("Escape without escaping particle")
-    sim.remove(hash=h)
+    sim.remove(hash=escaped_particle.hash)
+    ed.pd(escaped_particle).escaped = sim.t
 
     sim.move_to_com()
     sim.ri_whfast.recalculate_coordinates_this_timestep = 1

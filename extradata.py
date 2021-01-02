@@ -12,6 +12,7 @@ from scipy.constants import astronomical_unit, year
 class ParticleData:
     water_mass_fraction: float
     type: str
+    escaped: float = None
 
 
 @dataclass
