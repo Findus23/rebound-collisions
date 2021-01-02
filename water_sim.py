@@ -101,7 +101,7 @@ else:
     extradata = ExtraData.load(fn.with_suffix(".extra.json"))
     tmax = extradata.meta.tmax
     per_savestep = extradata.meta.per_savestep
-    t = extradata.meta.current_time
+    t = extradata.meta.current_time - per_savestep
     sim = sa.getSimulation(t=t)
     sim.move_to_com()
     sim.ri_whfast.recalculate_coordinates_this_timestep = 1
