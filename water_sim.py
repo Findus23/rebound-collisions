@@ -11,7 +11,7 @@ from scipy.constants import astronomical_unit
 from extradata import ExtraData, ParticleData
 from merge import merge_particles, handle_escape
 from radius_utils import radius
-from utils import unique_hash, filename_from_argv, innermost_period, total_impulse, reorder_particles
+from utils import unique_hash, filename_from_argv, innermost_period, total_impulse
 
 MIN_TIMESTEP_PER_ORBIT = 20
 PERFECT_MERGING = False
@@ -110,6 +110,8 @@ if not fn.with_suffix(".bin").exists():
 
 
 else:
+    if fn.with_suffix(".lock").exists():
+        raise FileExistsError("Lock file found, is the simulation currently running?")
     copy(fn.with_suffix(".bin"), fn.with_suffix(".bak.bin"))
     copy(fn.with_suffix(".extra.json"), fn.with_suffix(".extra.json.bin"))
     sa = SimulationArchive(str(fn.with_suffix(".bin")))
@@ -130,7 +132,7 @@ assert sim.dt < innermost_period(sim) / MIN_TIMESTEP_PER_ORBIT
 
 # show_orbits(sim)
 
-
+fn.with_suffix(".lock").touch()
 print("start")
 
 abort = False
