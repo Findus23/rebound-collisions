@@ -113,7 +113,7 @@ else:
     if fn.with_suffix(".lock").exists():
         raise FileExistsError("Lock file found, is the simulation currently running?")
     copy(fn.with_suffix(".bin"), fn.with_suffix(".bak.bin"))
-    copy(fn.with_suffix(".extra.json"), fn.with_suffix(".extra.json.bin"))
+    copy(fn.with_suffix(".extra.json"), fn.with_suffix(".extra.bak.json"))
     sa = SimulationArchive(str(fn.with_suffix(".bin")))
     extradata = ExtraData.load(fn.with_suffix(".extra.json"))
     tmax = extradata.meta.tmax
