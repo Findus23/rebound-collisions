@@ -1,6 +1,6 @@
 from graphviz import Digraph
 
-from extradata import ExtraData
+from extradata import ExtraData, CollisionMeta
 from utils import filename_from_argv
 
 fn = filename_from_argv()
@@ -10,9 +10,9 @@ dot = Digraph(comment='Collisions')
 for merged, originals in ed.tree._tree.items():
     first_parent = True
     for parent in originals["parents"]:
-        meta = originals["meta"]
-        water_ret = meta["water_retention"]
-        mass_ret = meta["mass_retention"]
+        meta: CollisionMeta = originals["meta"]
+        water_ret = meta.water_retention
+        mass_ret = meta.mass_retention
         if first_parent:
 
             label = f"{water_ret:.2f}/{mass_ret:.2f}"
@@ -22,4 +22,4 @@ for merged, originals in ed.tree._tree.items():
         dot.edge(str(parent), str(merged), xlabel=label)
 
 # dot.engine = 'neato'
-dot.render(fn.with_suffix(".gv"), view=False, format="svg")
+dot.render(fn.with_suffix(".gv"), view=True, format="svg")
