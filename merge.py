@@ -10,7 +10,7 @@ from scipy.constants import astronomical_unit, G
 
 from extradata import ExtraData, ParticleData, CollisionMeta, Input
 from radius_utils import radius
-from utils import unique_hash, clamp
+from utils import unique_hash, clamp, reorder_particles
 
 sys.path.append("./bac")
 
@@ -103,6 +103,8 @@ def merge_particles(sim: Simulation, ed: ExtraData):
     # Sun<->Protoplanet -> Sun
     main_particle = cp1 if cp1.m > cp2.m else cp2
 
+    print(f"colliding {ed.pd(cp1).type} with {ed.pd(cp2).type}")
+
     projectile_wmf = ed.pd(cp1).water_mass_fraction
     target_wmf = ed.pd(cp2).water_mass_fraction
 
@@ -188,6 +190,7 @@ def merge_particles(sim: Simulation, ed: ExtraData):
     sim.remove(hash=cp2_hash)
     sim.add(merged_planet)
 
+    reorder_particles(sim, ed)
     sim.move_to_com()
     sim.ri_whfast.recalculate_coordinates_this_timestep = 1
     sim.integrator_synchronize()
@@ -205,6 +208,7 @@ def handle_escape(sim: Simulation, ed: ExtraData):
     sim.remove(hash=escaped_particle.hash)
     ed.pd(escaped_particle).escaped = sim.t
 
+    reorder_particles(sim, ed)
     sim.move_to_com()
     sim.ri_whfast.recalculate_coordinates_this_timestep = 1
     sim.integrator_synchronize()

@@ -2,9 +2,15 @@ from ctypes import c_uint32
 from pathlib import Path
 from random import randint
 from sys import argv
+from typing import Tuple, Dict
 
+from matplotlib import pyplot as plt
+from matplotlib.axes import Axes
+from matplotlib.figure import Figure
 from numpy import linalg
 from rebound import Simulation, Orbit, Particle, OrbitPlot
+
+from extradata import ExtraData
 
 
 def unique_hash() -> c_uint32:
@@ -62,3 +68,58 @@ def filename_from_argv(argument: str = None) -> Path:
     if fn.endswith("."):
         fn = fn[:-1]
     return Path(fn.replace(".bin", "").replace(".meta.json", ""))
+
+
+def create_figure() -> Tuple[Figure, Axes]:
+    """
+    helper function for matplotlib OOP interface with proper typing
+    """
+    fig: Figure = plt.figure()
+    ax: Axes = fig.gca()
+    return fig, ax
+
+
+def reorder_particles(sim: Simulation, ed: ExtraData) -> None:
+    particles_by_hash: Dict[str, Particle] = {}
+    hashes = []
+    suns = []
+    gas_giants = []
+    embryos = []
+    planetesimals = []
+    original_N = sim.N
+    p: Particle
+    for p in sim.particles:
+        hash_value = p.hash.value
+        # save a copy of the particles
+        particles_by_hash[hash_value] = p.copy()
+        type = ed.pd(p).type
+        if type == "sun":
+            suns.append(hash_value)
+            # keep sun in the simulation to avoid empty particles list
+            continue
+        elif type == "gas giant":
+            gas_giants.append(hash_value)
+        elif type == "embryo":
+            embryos.append(hash_value)
+        elif type == "planetesimal":
+            planetesimals.append(hash_value)
+        else:
+            raise ValueError(f"unknown type: {type}")
+        hashes.append(p.hash)
+
+    for hash in hashes:
+        sim.remove(hash=hash)
+    ordered_particles = gas_giants + embryos + planetesimals
+    assert len(suns) + len(ordered_particles) == original_N
+    particle: Particle
+    for h in ordered_particles:
+        particle = particles_by_hash[h]
+        sim.add(particle)
+    # print(list(sim.particles))
+    # exit()
+    sim.N_active = len(suns) + len(ordered_particles) - len(planetesimals)
+    # mark objects > N_active as testparticle_type = 1
+    # this means they become semi-active bodies
+    # TODO: double-check meaning
+    sim.testparticle_type = 1
+    assert sim.N == original_N

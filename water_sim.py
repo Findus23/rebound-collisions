@@ -11,7 +11,7 @@ from scipy.constants import astronomical_unit
 from extradata import ExtraData, ParticleData
 from merge import merge_particles, handle_escape
 from radius_utils import radius
-from utils import unique_hash, filename_from_argv, innermost_period, total_impulse
+from utils import unique_hash, filename_from_argv, innermost_period, total_impulse, reorder_particles
 
 MIN_TIMESTEP_PER_ORBIT = 20
 PERFECT_MERGING = False
@@ -51,11 +51,9 @@ if not fn.with_suffix(".bin").exists():
     extradata.meta.perfect_merging = PERFECT_MERGING
 
     initcon = INITCON_FILE.read_text()
-    print(initcon)
     num_embryos = int(re.search(r"Generated (\d+) minor bodies", initcon, re.MULTILINE).group(1))
     num_planetesimals = int(re.search(r"Generated (\d+) small bodies", initcon, re.MULTILINE).group(1))
-    # TODO: before using N_active we need code that can toogle the active status of a particle
-    # sim.N_active = num_embryos + 3
+    sim.N_active = num_embryos + 3
     i = 1
     for line in initcon.split("\n"):
         if line.startswith("#") or line.startswith("ERROR") or line == "\n" or not line:
@@ -155,6 +153,7 @@ while t <= tmax:
         print("No Particles left")
         abort = True
     print("N", sim.N)
+    print("N_active", sim.N_active)
     sim.simulationarchive_snapshot(str(fn.with_suffix(".bin")))
     extradata.meta.walltime = time.perf_counter() - start + walltimeoffset
     extradata.meta.cputime = time.process_time() + cputimeoffset
