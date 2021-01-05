@@ -64,6 +64,8 @@ def update_line(num: int, args: MyProgramArgs, sa: SimulationArchive, ed: ExtraD
     # a, e, i, M, M_rat = data[line]
     # title.set_text(f"({len(a)}) {ages[line]:.2f}K Years")
     a = [p.a for p in sim.particles[1:]]
+    m = np.array([p.m for p in sim.particles[1:]])
+    m[:2] /= 1e2
 
     if args.y_axis == "e":
         bla = np.array([a, [p.e for p in sim.particles[1:]]])
@@ -79,6 +81,7 @@ def update_line(num: int, args: MyProgramArgs, sa: SimulationArchive, ed: ExtraD
     print(color_val)
     colors = cmap(color_val)
     print(colors)
+    dots.set_sizes(3 * m / np.mean(m[3:]))
     dots.set_color(colors)
     # plt.savefig("tmp/" + str(num) + ".pdf",transparent=True)
     return dots, title
@@ -90,7 +93,7 @@ def main(args: MyProgramArgs):
     logtime = False
     cmap: Colormap = matplotlib.cm.get_cmap("Blues")
 
-    fig1 = plt.figure()
+    fig1 = plt.figure(figsize=(15, 10))
 
     l: PathCollection = plt.scatter([1], [1])
 
@@ -124,7 +127,7 @@ def main(args: MyProgramArgs):
     line_ani = animation.FuncAnimation(fig1, update_line, total_frames, fargs=(args, sa, ed, l, title),
                                        interval=1000 / args.fps, repeat=False)
     if args.save_video:
-        line_ani.save(str(fn.with_suffix(".mp4")), dpi=300)
+        line_ani.save(str(fn.with_suffix(".mp4")), dpi=200)
     else:
         plt.show()
 
