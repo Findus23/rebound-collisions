@@ -29,7 +29,6 @@ def innermost_period(sim: Simulation) -> float:
     """
     minp = None
     mina = float("inf")
-
     for p in sim.particles[1:]:
         if p.a < mina:
             mina = p.a
@@ -80,7 +79,10 @@ def create_figure() -> Tuple[Figure, Axes]:
 
 
 def reorder_particles(sim: Simulation, ed: ExtraData) -> None:
-    particles_by_hash: Dict[str, Particle] = {}
+    """
+    probably not needed anymore
+    """
+    particles_by_hash: Dict[int, Particle] = {}
     hashes = []
     suns = []
     gas_giants = []

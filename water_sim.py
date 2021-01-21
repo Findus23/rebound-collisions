@@ -4,8 +4,9 @@ from math import radians
 from pathlib import Path
 from shutil import copy
 
-from rebound import Simulation, Particle, reb_simulation_integrator_mercurius, NoParticles, Collision, Escape, \
+from rebound import Simulation, Particle, NoParticles, Escape, \
     SimulationArchive
+from rebound.simulation import POINTER_REB_SIM, reb_collision
 from scipy.constants import astronomical_unit
 
 from extradata import ExtraData, ParticleData
@@ -39,8 +40,6 @@ def main(fn: Path):
         sim.collision = "direct"
         sim.ri_mercurius.hillfac = 3.
         sim.ri_whfast.corrector = 11
-        if PERFECT_MERGING:
-            sim.collision_resolve = "merge"
         tmax = 1e6
         num_savesteps = 20000
         per_savestep = tmax / num_savesteps
@@ -108,8 +107,6 @@ def main(fn: Path):
         extradata.energy.set_initial_energy(sim.calculate_energy())
         cputimeoffset = walltimeoffset = 0
         t = 0
-
-
     else:
         if fn.with_suffix(".lock").exists():
             raise FileExistsError("Lock file found, is the simulation currently running?")
@@ -131,6 +128,11 @@ def main(fn: Path):
 
     assert sim.dt < innermost_period(sim) / MIN_TIMESTEP_PER_ORBIT
 
+    def collision_resolve_handler(sim_p: POINTER_REB_SIM, collision: reb_collision) -> int:
+        return merge_particles(sim_p, collision, ed=extradata)
+
+    sim.collision_resolve = collision_resolve_handler
+
     # show_orbits(sim)
 
     fn.with_suffix(".lock").touch()
@@ -145,11 +147,7 @@ def main(fn: Path):
             sim.integrate(t, exact_finish_time=0)
             print("dt", sim.dt)
             print("t", t)
-            merc: reb_simulation_integrator_mercurius = sim.ri_mercurius
-            print("current mode", "ias15" if merc.mode else "whfast")
             t += per_savestep
-        except Collision:
-            merge_particles(sim, extradata)
         except Escape:
             handle_escape(sim, extradata)
         except NoParticles:

@@ -13,3 +13,4 @@ data/
 *.mp4
 tmp/
 notes.md
+poc*

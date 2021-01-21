@@ -1,11 +1,13 @@
 import sys
 from copy import copy
 from pathlib import Path
+from pprint import pprint
 from typing import List, Tuple
 
 import numpy as np
 from numpy import linalg, sqrt
-from rebound import Simulation, Particle
+from rebound import Simulation, Particle, reb_simulation_integrator_mercurius
+from rebound.simulation import POINTER_REB_SIM, reb_collision
 from scipy.constants import astronomical_unit, G
 
 from extradata import ExtraData, ParticleData, CollisionMeta, Input
@@ -47,8 +49,6 @@ def get_mass_fractions(input_data: Input) -> Tuple[float, float, CollisionMeta]:
     print("v_orig,v_si", input_data.velocity_original, input_data.velocity_si)
     print("v/v_esc", input_data.velocity_esc)
     data = copy(input_data)
-    if data.alpha > 90:
-        data.alpha = 180 - data.alpha
     if data.gamma > 1:
         data.gamma = 1 / data.gamma
     data.alpha = clamp(data.alpha, 0, 60)
@@ -77,29 +77,20 @@ def get_mass_fractions(input_data: Input) -> Tuple[float, float, CollisionMeta]:
     return water_retention, mass_retention, metadata
 
 
-def merge_particles(sim: Simulation, ed: ExtraData):
+def merge_particles(sim_p: POINTER_REB_SIM, collision: reb_collision, ed: ExtraData):
     print("colliding")
+    sim: Simulation = sim_p.contents
     collided: List[Particle] = []
-    p: Particle
-    for p in sim.particles:
-        # print(p.lastcollision, sim.t)
-        # if p.lastcollision == sim.t:
-        if p.lastcollision >= sim.t - sim.dt:
-            collided.append(p)
-    # if not collided:
-    #     print("empty collision")
-    #     return
-    print(collided)
-    assert len(collided) == 2, "More or fewer than 2 objects collided with each other"
 
     # the assignment to cp1 or cp2 is mostly random
     # (cp1 is the one with a lower index in sim.particles)
     # naming them projectile or target is therefore also arbitrary
-    cp1: Particle  # projectile
-    cp2: Particle  # target
-    cp1, cp2 = collided
+    # also look at a copy instead of the original particles
+    # to avoid issues after they have been modified
+    cp1: Particle = sim.particles[collision.p1].copy()  # projectile
+    cp2: Particle = sim.particles[collision.p2].copy()  # target
 
-    # just called the more massive one the main particle to keep its type/name
+    # just calling the more massive one the main particle to keep its type/name
     # Sun<->Protoplanet -> Sun
     main_particle = cp1 if cp1.m > cp2.m else cp2
 
@@ -112,15 +103,27 @@ def merge_particles(sim: Simulation, ed: ExtraData):
     # all units are in sytem units (so AU/year)
     v1 = np.array(cp1.vxyz)
     v2 = np.array(cp2.vxyz)
-    vdiff = linalg.norm(v2 - v1)
-    v1_u = v1 / linalg.norm(v1)
-    v2_u = v2 / linalg.norm(v2)
-    # get angle between the two velocities as degrees
-    # https://stackoverflow.com/a/13849249/4398037
-    print(v1, v2)
-    print("angle_rad", np.arccos(np.clip(np.dot(v1_u, v2_u), -1.0, 1.0)))
-    ang = float(np.degrees(np.arccos(np.clip(np.dot(v1_u, v2_u), -1.0, 1.0))))
+    r1 = np.array(cp1.xyz)
+    r2 = np.array(cp2.xyz)
+    vdiff = v2 - v1
+    rdiff = r2 - r1
+    vdiff_n = linalg.norm(vdiff)
+    rdiff_n = linalg.norm(rdiff)
+    print("dt", sim.dt)
+    merc: reb_simulation_integrator_mercurius = sim.ri_mercurius
+    print("current mode", "ias15" if merc.mode else "whfast")
+
+    print("rdiff", rdiff)
+    print("vdiff", vdiff)
+    print("sum_radii", cp1.r + cp2.r)
+    print("rdiff_n", rdiff_n)
+    print("vdiff_n", vdiff_n)
+    ang = float(np.degrees(np.arccos(np.dot(rdiff, vdiff) / (rdiff_n * vdiff_n))))
+    if ang > 90:
+        ang = 180 - ang
+
     print("angle_deg", ang)
+    print()
     # get mass fraction
     # if it is >1 it will be inverted during interpolation
     gamma = cp1.m / cp2.m
@@ -135,7 +138,7 @@ def merge_particles(sim: Simulation, ed: ExtraData):
     # understand the collisions better
     input_data = Input(
         alpha=ang,
-        velocity_original=vdiff,
+        velocity_original=vdiff_n,
         escape_velocity=escape_velocity,
         gamma=gamma,
         projectile_mass=cp1.m,
@@ -178,22 +181,25 @@ def merge_particles(sim: Simulation, ed: ExtraData):
     meta.target_wmf = target_wmf
     meta.projectile_wmf = projectile_wmf
     meta.time = sim.t
+    pprint(meta)
+
     ed.tree.add(cp1, cp2, merged_planet, meta)
 
-    cp1_hash = cp1.hash
-    cp2_hash = cp2.hash
+    sim.particles[collision.p1] = merged_planet
 
-    # don't use cp1 and cp2 from now on as they will change
-
-    print("removing", cp1_hash.value, cp2_hash.value)
-    sim.remove(hash=cp1_hash)
-    sim.remove(hash=cp2_hash)
-    sim.add(merged_planet)
-
-    reorder_particles(sim, ed)
     sim.move_to_com()
     sim.ri_whfast.recalculate_coordinates_this_timestep = 1
     sim.integrator_synchronize()
+    sim.ri_mercurius.recalculate_coordinates_this_timestep = 1
+    sim.ri_mercurius.recalculate_dcrit_this_timestep = 1
+
+    # from rebound docs:
+    # A return value of 0 indicates that both particles remain in the simulation.
+    # A return value of 1 (2) indicates that particle 1 (2) should be removed from the simulation.
+    # A return value of 3 indicates that both particles should be removed from the simulation.
+
+    # for now we will always set the first particle to the merged one and throw away the second one
+    return 2
 
 
 def handle_escape(sim: Simulation, ed: ExtraData):
