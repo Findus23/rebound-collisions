@@ -2,7 +2,7 @@ import sys
 from copy import copy
 from pathlib import Path
 from pprint import pprint
-from typing import List, Tuple
+from typing import Tuple
 
 import numpy as np
 from numpy import linalg, sqrt
@@ -81,7 +81,6 @@ def merge_particles(sim_p: POINTER_REB_SIM, collision: reb_collision, ed: ExtraD
     print("--------------")
     print("colliding")
     sim: Simulation = sim_p.contents
-    collided: List[Particle] = []
     print("current time step", sim.dt, )
     print("mode", sim.ri_mercurius.mode)
 
@@ -95,7 +94,12 @@ def merge_particles(sim_p: POINTER_REB_SIM, collision: reb_collision, ed: ExtraD
 
     # just calling the more massive one the main particle to keep its type/name
     # Sun<->Protoplanet -> Sun
-    main_particle = cp1 if cp1.m > cp2.m else cp2
+    if cp1.m > cp2.m:
+        main_particle_id = collision.p1
+        main_particle = cp1
+    else:
+        main_particle_id = collision.p2
+        main_particle = cp2
 
     print(f"colliding {ed.pd(cp1).type} with {ed.pd(cp2).type}")
 
@@ -190,7 +194,7 @@ def merge_particles(sim_p: POINTER_REB_SIM, collision: reb_collision, ed: ExtraD
 
     ed.tree.add(cp1, cp2, merged_planet, meta)
 
-    sim.particles[collision.p1] = merged_planet
+    sim.particles[main_particle_id] = merged_planet
 
     sim.move_to_com()
     sim.ri_whfast.recalculate_coordinates_this_timestep = 1
@@ -205,8 +209,10 @@ def merge_particles(sim_p: POINTER_REB_SIM, collision: reb_collision, ed: ExtraD
     # A return value of 1 (2) indicates that particle 1 (2) should be removed from the simulation.
     # A return value of 3 indicates that both particles should be removed from the simulation.
 
-    # for now we will always set the first particle to the merged one and throw away the second one
-    return 2
+    if main_particle_id == collision.p1:
+        return 2
+    else:
+        return 1
 
 
 def handle_escape(sim: Simulation, ed: ExtraData):
