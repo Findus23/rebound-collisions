@@ -37,6 +37,8 @@ class Input:
 @dataclass
 class CollisionMeta:
     collision_velocities: Tuple[List[float], List[float]] = None
+    collision_positions: Tuple[List[float], List[float]] = None
+    collision_radii: Tuple[float, float] = None
     interpolation_input: List[float] = None
     raw_water_retention: float = None
     raw_mass_retention: float = None

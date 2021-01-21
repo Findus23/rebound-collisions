@@ -78,9 +78,12 @@ def get_mass_fractions(input_data: Input) -> Tuple[float, float, CollisionMeta]:
 
 
 def merge_particles(sim_p: POINTER_REB_SIM, collision: reb_collision, ed: ExtraData):
+    print("--------------")
     print("colliding")
     sim: Simulation = sim_p.contents
     collided: List[Particle] = []
+    print("current time step", sim.dt, )
+    print("mode", sim.ri_mercurius.mode)
 
     # the assignment to cp1 or cp2 is mostly random
     # (cp1 is the one with a lower index in sim.particles)
@@ -151,6 +154,8 @@ def merge_particles(sim_p: POINTER_REB_SIM, collision: reb_collision, ed: ExtraD
     print(water_ret, stone_ret)
 
     meta.collision_velocities = (v1.tolist(), v2.tolist())
+    meta.collision_positions = (cp1.xyz, cp2.xyz)
+    meta.collision_radii = (cp1.r, cp2.r)
 
     hash = unique_hash()  # hash for newly created particle
 
@@ -193,6 +198,8 @@ def merge_particles(sim_p: POINTER_REB_SIM, collision: reb_collision, ed: ExtraD
     sim.ri_mercurius.recalculate_coordinates_this_timestep = 1
     sim.ri_mercurius.recalculate_dcrit_this_timestep = 1
 
+    print("collision finished")
+    print("--------------")
     # from rebound docs:
     # A return value of 0 indicates that both particles remain in the simulation.
     # A return value of 1 (2) indicates that particle 1 (2) should be removed from the simulation.
