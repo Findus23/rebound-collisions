@@ -1,3 +1,5 @@
+import os
+import socket
 from ctypes import c_uint32
 from pathlib import Path
 from random import randint
@@ -9,6 +11,7 @@ from matplotlib.axes import Axes
 from matplotlib.figure import Figure
 from numpy import linalg
 from rebound import Simulation, Orbit, Particle, OrbitPlot
+from setproctitle import setproctitle
 
 from extradata import ExtraData
 
@@ -125,3 +128,11 @@ def reorder_particles(sim: Simulation, ed: ExtraData) -> None:
     # TODO: double-check meaning
     sim.testparticle_type = 1
     assert sim.N == original_N
+
+
+def process_friendlyness(fn:Path) -> None:
+    if socket.gethostname() == "standpc":
+        # only handle other computers specially
+        return
+    setproctitle(f"[rebound-watersim] [{fn.stem}] read /home/winklerl23/sim-info.txt for more information")
+    os.nice(5)

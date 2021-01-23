@@ -7,12 +7,12 @@ from shutil import copy
 from rebound import Simulation, Particle, NoParticles, Escape, \
     SimulationArchive
 from rebound.simulation import POINTER_REB_SIM, reb_collision
-from scipy.constants import astronomical_unit
+from scipy.constants import astronomical_unit, mega
 
 from extradata import ExtraData, ParticleData
 from merge import merge_particles, handle_escape
 from radius_utils import radius
-from utils import unique_hash, filename_from_argv, innermost_period, total_impulse
+from utils import unique_hash, filename_from_argv, innermost_period, total_impulse, process_friendlyness
 
 MIN_TIMESTEP_PER_ORBIT = 20
 PERFECT_MERGING = False
@@ -40,7 +40,7 @@ def main(fn: Path):
         sim.collision = "direct"
         sim.ri_mercurius.hillfac = 3.
         sim.ri_whfast.corrector = 11
-        tmax = 1e6
+        tmax = 200 * mega
         num_savesteps = 20000
         per_savestep = tmax / num_savesteps
         extradata = ExtraData()
@@ -173,6 +173,7 @@ def main(fn: Path):
 
 if __name__ == '__main__':
     fn = filename_from_argv()
+    process_friendlyness(fn)
     try:
         main(fn)
     except KeyboardInterrupt:
