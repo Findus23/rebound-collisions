@@ -39,7 +39,7 @@ def main(fn: Path):
         sim.ri_whfast.safe_mode = 0
         sim.collision = "direct"
         sim.ri_mercurius.hillfac = 3.
-        sim.ri_whfast.corrector = 11
+        sim.ri_whfast.coordinates = "democraticheliocentric"
         tmax = 200 * mega
         num_savesteps = 20000
         per_savestep = tmax / num_savesteps
