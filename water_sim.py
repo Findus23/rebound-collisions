@@ -18,8 +18,11 @@ MIN_TIMESTEP_PER_ORBIT = 20
 PERFECT_MERGING = False
 INITCON_FILE = Path("initcon/conditions_many.input")
 
+abort = False
+
 
 def main(fn: Path):
+    global abort
     start = time.perf_counter()
 
     if not fn.with_suffix(".bin").exists():
@@ -129,7 +132,15 @@ def main(fn: Path):
     assert sim.dt < innermost_period(sim) / MIN_TIMESTEP_PER_ORBIT
 
     def collision_resolve_handler(sim_p: POINTER_REB_SIM, collision: reb_collision) -> int:
-        return merge_particles(sim_p, collision, ed=extradata)
+        global abort  # needed as exceptions don't halt integration
+        try:
+            return merge_particles(sim_p, collision, ed=extradata)
+        except BaseException as exception:
+            print("exception during collision_resolve")
+            print(exception)
+            abort = True
+            sim_p.contents._status = 1
+            raise exception
 
     sim.collision_resolve = collision_resolve_handler
 
@@ -138,7 +149,6 @@ def main(fn: Path):
     fn.with_suffix(".lock").touch()
     print("start")
 
-    abort = False
     while t <= tmax:
         print()
         print(f"{t / tmax * 100:.2f}%")
