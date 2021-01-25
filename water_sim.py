@@ -36,13 +36,10 @@ def main(fn: Path):
         sim.exit_max_distance = 30
         sim.integrator = "mercurius"
         # sim.collision = 'line'
-        # sim.ri_whfast.coordinates = "democraticheliocentric"
         sim.dt = 1e-2
         sim.ri_ias15.min_dt = 0.0001 / 365
-        sim.ri_whfast.safe_mode = 0
         sim.collision = "direct"
         sim.ri_mercurius.hillfac = 3.
-        sim.ri_whfast.coordinates = "democraticheliocentric"
         tmax = 200 * mega
         num_savesteps = 20000
         per_savestep = tmax / num_savesteps
@@ -122,7 +119,7 @@ def main(fn: Path):
         t = extradata.meta.current_time - per_savestep
         sim = sa.getSimulation(t=t)
         sim.move_to_com()
-        sim.ri_whfast.recalculate_coordinates_this_timestep = 1
+        sim.ri_mercurius.recalculate_coordinates_this_timestep = 1
         sim.integrator_synchronize()
 
         num_savesteps = extradata.meta.num_savesteps

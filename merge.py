@@ -119,6 +119,8 @@ def merge_particles(sim_p: POINTER_REB_SIM, collision: reb_collision, ed: ExtraD
     print("dt", sim.dt)
     merc: reb_simulation_integrator_mercurius = sim.ri_mercurius
     print("current mode", "ias15" if merc.mode else "whfast")
+    # during a collision ias15 should always be used, otherwise something weird has happend
+    assert merc.mode == 1
 
     print("rdiff", rdiff)
     print("vdiff", vdiff)
@@ -197,7 +199,6 @@ def merge_particles(sim_p: POINTER_REB_SIM, collision: reb_collision, ed: ExtraD
     sim.particles[main_particle_id] = merged_planet
 
     sim.move_to_com()
-    sim.ri_whfast.recalculate_coordinates_this_timestep = 1
     sim.integrator_synchronize()
     sim.ri_mercurius.recalculate_coordinates_this_timestep = 1
     sim.ri_mercurius.recalculate_dcrit_this_timestep = 1
@@ -229,5 +230,4 @@ def handle_escape(sim: Simulation, ed: ExtraData):
 
     reorder_particles(sim, ed)
     sim.move_to_com()
-    sim.ri_whfast.recalculate_coordinates_this_timestep = 1
     sim.integrator_synchronize()
