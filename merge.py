@@ -12,7 +12,7 @@ from scipy.constants import astronomical_unit, G
 
 from extradata import ExtraData, ParticleData, CollisionMeta, Input
 from radius_utils import radius
-from utils import unique_hash, clamp, reorder_particles
+from utils import unique_hash, clamp
 
 sys.path.append("./bac")
 
@@ -228,6 +228,6 @@ def handle_escape(sim: Simulation, ed: ExtraData):
     sim.remove(hash=escaped_particle.hash)
     ed.pd(escaped_particle).escaped = sim.t
 
-    reorder_particles(sim, ed)
+    # reorder_particles(sim, ed)
     sim.move_to_com()
     sim.integrator_synchronize()
