@@ -225,8 +225,8 @@ def handle_escape(sim: Simulation, ed: ExtraData):
             escaped_particle = p
     if not escaped_particle:
         raise RuntimeError("Escape without escaping particle")
-    sim.remove(hash=escaped_particle.hash)
     ed.pd(escaped_particle).escaped = sim.t
+    sim.remove(hash=escaped_particle.hash)
 
     # reorder_particles(sim, ed)
     sim.move_to_com()
