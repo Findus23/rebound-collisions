@@ -22,7 +22,6 @@ class MyProgramArgs(argparse.Namespace):
     y_axis: str
 
 
-matplotlib.use("Qt5Agg")
 plt.style.use("dark_background")
 cmap: Colormap = matplotlib.cm.get_cmap('Blues')
 # fps = 5
