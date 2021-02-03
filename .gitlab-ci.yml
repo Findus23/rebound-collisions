@@ -26,12 +26,14 @@ before_script:
   - curl -O -u gitlabci:$COLLISION_SECRETS https://lw1.at/s/astro/collision-secrets/save.jsonl
 
 mypy:
+  needs: []
   stage: tests
   script:
     - mypy *.py
 
 simulation_run:
   stage: simulation
+  needs: []
   script:
     - peotry run python water_sim.py test_simulationrun test
   artifacts:
