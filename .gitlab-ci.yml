@@ -30,7 +30,6 @@ mypy:
     - mypy *.py
 
 simulation_run:
-  stage: test
   script:
     - peotry run python water_sim.py test_simulationrun test
   artifacts:
@@ -39,7 +38,8 @@ simulation_run:
     expire_in: 60 days
 
 visualisation:
-  stage: visualisation
+  needs:
+    - simulation_run
   script:
     - peotry run python analyze.py test_simulationrun
     - peotry run python collisionhistory.py test_simulationrun
@@ -47,6 +47,3 @@ visualisation:
     - peotry run python graph.py test_simulationrun
     - peotry run python timeplot.py test_simulationrun
 
-stages:
-  - simulation
-  - visualisation
