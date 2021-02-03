@@ -30,12 +30,13 @@ mypy:
   stage: tests
   script:
     - mypy *.py
+  allow_failure: true
 
 simulation_run:
   stage: simulation
   needs: []
   script:
-    - peotry run python water_sim.py test_simulationrun test
+    - poetry run python water_sim.py test_simulationrun test
   artifacts:
     paths:
       - "test_simulationrun*"
@@ -46,11 +47,11 @@ visualisation:
   needs:
     - simulation_run
   script:
-    - peotry run python analyze.py test_simulationrun
-    - peotry run python collisionhistory.py test_simulationrun
-    - peotry run python collisionstats.py test_simulationrun
-    - peotry run python graph.py test_simulationrun
-    - peotry run python timeplot.py test_simulationrun
+    - poetry run python analyze.py test_simulationrun
+    - poetry run python collisionhistory.py test_simulationrun
+    - poetry run python collisionstats.py test_simulationrun
+    - poetry run python graph.py test_simulationrun
+    - poetry run python timeplot.py test_simulationrun
 
 stages:
   - tests
