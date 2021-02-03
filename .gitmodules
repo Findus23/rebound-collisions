@@ -1,0 +1,3 @@
+[submodule "bac"]
+	path = bac
+	url = https://git.lw1.at/lw1/collision-interpolation.git

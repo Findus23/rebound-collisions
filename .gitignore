@@ -1,7 +1,7 @@
 initcon
-bac
 .idea
 *.json
+*.jsonl
 *.bin
 super.in
 __pycache__/
