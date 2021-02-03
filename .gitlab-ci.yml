@@ -23,9 +23,30 @@ before_script:
   - virtualenv venv
   - source venv/bin/activate
   - poetry install
+  - curl -O -u gitlabci:$COLLISION_SECRETS https://lw1.at/s/astro/collision-secrets/save.jsonl
 
 mypy:
   script:
-    - mypy *.py 
+    - mypy *.py
 
+simulation_run:
+  stage: test
+  script:
+    - peotry run python water_sim.py test_simulationrun test
+  artifacts:
+    paths:
+      - "test_simulationrun*"
+    expire_in: 60 days
 
+visualisation:
+  stage: visualisation
+  script:
+    - peotry run python analyze.py test_simulationrun
+    - peotry run python collisionhistory.py test_simulationrun
+    - peotry run python collisionstats.py test_simulationrun
+    - peotry run python graph.py test_simulationrun
+    - peotry run python timeplot.py test_simulationrun
+
+stages:
+  - simulation
+  - visualisation

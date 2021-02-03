@@ -20,7 +20,7 @@ from bac.simulation_list import SimulationList
 from bac.CustomScaler import CustomScaler
 from bac.interpolators.rbf import RbfInterpolator
 
-simulations = SimulationList.jsonlines_load(Path("./bac/save.jsonl"))
+simulations = SimulationList.jsonlines_load(Path("./save.jsonl"))
 
 scaler = CustomScaler()
 scaler.fit(simulations.X)
