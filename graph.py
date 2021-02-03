@@ -7,9 +7,8 @@ fn = filename_from_argv()
 ed = ExtraData.load(fn.with_suffix(".extra.json"))
 
 dot = Digraph(comment='Collisions')
-
 interacting_objects = set()
-for merged, originals in ed.tree._tree.items():
+for merged, originals in ed.tree.get_tree().items():
     first_parent = True
     for parent in originals["parents"]:
         meta: CollisionMeta = originals["meta"]
@@ -25,14 +24,22 @@ for merged, originals in ed.tree._tree.items():
         interacting_objects.add(parent)
         interacting_objects.add(int(merged))
 
-for name in interacting_objects:
+for name in ed.pdata.keys():
     object = ed.pdata[name]
     if object.type == "sun":
-        name = "Sun"
-    if object.type == "gas giant":
-        name = "gas giant"
-    dot.node(name=str(name), label=f"{name} ({object.water_mass_fraction:.2e})",
+        displayname = "Sun"
+    elif object.type == "gas giant":
+        displayname = "gas giant"
+    else:
+        displayname = name
+    try:
+        mass = object.total_mass
+    except KeyError:
+        mass = 0
+    dot.node(name=str(name), label=f"{displayname} ({object.water_mass_fraction:.2e}; {mass:.2e})",
              shape='box' if object.type == "planetesimal" else "ellipse")
+    if object.escaped:
+        dot.edge(str(name), str("escaped"))
 
 # dot.engine = 'neato'
-dot.render(fn.with_suffix(".gv"), view=True, format="svg")
+dot.render(fn.with_suffix(".gv"), view=True, format="pdf")
