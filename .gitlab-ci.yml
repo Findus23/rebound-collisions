@@ -70,11 +70,7 @@ video:
   needs:
     - simulation_run
   script:
-    - poetry run python timeplot.py test_simulationrun --save
-  artifacts:
-    paths:
-      - test_simulationrun.mp4
-    expire_in: 30 days
+    - poetry run python timeplot.py test_simulationrun
 
 stages:
   - tests
