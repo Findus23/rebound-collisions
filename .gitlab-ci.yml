@@ -19,7 +19,6 @@ before_script:
   - python -V  # Print out python version for debugging
   - pip install poetry
   - pip install virtualenv
-  - pip install mypy
   - virtualenv venv
   - source venv/bin/activate
   - poetry install
@@ -28,6 +27,8 @@ before_script:
   - curl -o initcon/conditions_many.input -u gitlabci:$COLLISION_SECRETS https://lw1.at/s/astro/collision-secrets/conditions_many.input
 
 mypy:
+  before_script:
+    - pip install mypy
   needs: [ ]
   stage: tests
   script:
