@@ -183,10 +183,10 @@ def merge_particles(sim_p: POINTER_REB_SIM, collision: reb_collision, ed: ExtraD
     merged_planet.r = radius(merged_planet.m, final_wmf) / astronomical_unit
     ed.pdata[hash.value] = ParticleData(
         water_mass_fraction=final_wmf,
-        type=ed.pd(main_particle).type
+        type=ed.pd(main_particle).type,
+        total_mass=total_mass
     )
 
-    meta.total_mass = total_mass
     meta.final_wmf = final_wmf
     meta.final_radius = merged_planet.r
     meta.target_wmf = target_wmf

@@ -13,6 +13,11 @@ class ParticleData:
     water_mass_fraction: float
     type: str
     escaped: float = None
+    total_mass: float = None
+
+    @property
+    def water_mass(self) -> float:
+        return self.total_mass * self.water_mass_fraction
 
 
 @dataclass
@@ -100,10 +105,13 @@ class CollisionTree:
 
             metadata = CollisionMeta(**metadata)
             data["meta"] = metadata
-            self._tree[key] = data
+            self._tree[int(key)] = data
 
     def get_tree(self) -> Dict:
         return self._tree
+
+    def get(self, particle: Particle):
+        return self._tree[particle.hash.value]
 
 
 class EnergyConservation:

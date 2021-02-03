@@ -3,6 +3,7 @@ import time
 from math import radians
 from pathlib import Path
 from shutil import copy
+from sys import argv
 
 from rebound import Simulation, Particle, NoParticles, Escape, \
     SimulationArchive
@@ -21,7 +22,7 @@ INITCON_FILE = Path("initcon/conditions_many.input")
 abort = False
 
 
-def main(fn: Path):
+def main(fn: Path, testrun=False):
     global abort
     start = time.perf_counter()
 
@@ -42,6 +43,9 @@ def main(fn: Path):
         sim.ri_mercurius.hillfac = 3.
         tmax = 200 * mega
         num_savesteps = 20000
+        if testrun:
+            tmax /= 200000
+            num_savesteps /= 1000
         per_savestep = tmax / num_savesteps
         extradata = ExtraData()
         # times = np.linspace(0., tmax, savesteps)
@@ -83,7 +87,8 @@ def main(fn: Path):
                     object_type = "gas giant"
             extradata.pdata[hash.value] = ParticleData(
                 water_mass_fraction=wmf,
-                type=object_type
+                type=object_type,
+                total_mass=columns[0]
             )
 
             if columns[1] == 0:  # that should not be needed, but nevertheless is
@@ -181,8 +186,11 @@ def main(fn: Path):
 if __name__ == '__main__':
     fn = filename_from_argv()
     process_friendlyness(fn)
+    testrun = False
+    if len(argv) > 2 and argv[2] == "test":
+        testrun = True
     try:
-        main(fn)
+        main(fn, testrun)
     except KeyboardInterrupt:
         print("aborting")
         lockfile = fn.with_suffix(".lock")
