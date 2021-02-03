@@ -1,3 +1,5 @@
+from os import environ
+
 from graphviz import Digraph
 
 from extradata import ExtraData, CollisionMeta
@@ -42,4 +44,7 @@ for name in ed.pdata.keys():
         dot.edge(str(name), str("escaped"))
 
 # dot.engine = 'neato'
-dot.render(fn.with_suffix(".gv"), view=True, format="pdf")
+if environ.get("CI"):
+    dot.save(fn.with_suffix(".gv"))
+else:
+    dot.render(fn.with_suffix(".gv"), view=True, format="pdf")

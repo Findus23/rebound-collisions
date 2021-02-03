@@ -1,4 +1,4 @@
-image: python:3.7 # not used with shell executor
+image: python:3.7
 
 # Change pip's cache directory to be inside the project directory since we can
 # only cache local items.
@@ -28,8 +28,6 @@ before_script:
   - curl -o initcon/conditions_many.input -u gitlabci:$COLLISION_SECRETS https://lw1.at/s/astro/collision-secrets/conditions_many.input
 
 mypy:
-  tags:
-    - shell
   needs: [ ]
   stage: tests
   script:
@@ -37,8 +35,6 @@ mypy:
   allow_failure: true
 
 simulation_run:
-  tags:
-    - shell
   stage: simulation
   needs: [ ]
   script:
@@ -49,8 +45,6 @@ simulation_run:
     expire_in: 60 days
 
 visualisation:
-  tags:
-    - shell
   stage: visualisation
   needs:
     - simulation_run
@@ -58,11 +52,19 @@ visualisation:
     - poetry run python analyze.py test_simulationrun
     - poetry run python collisionhistory.py test_simulationrun
     - poetry run python collisionstats.py test_simulationrun
+
+graph:
+  stage: visualisation
+  needs:
+    - simulation_run
+  script:
     - poetry run python graph.py test_simulationrun
+  artifacts:
+    paths:
+      - test_simulationrun.gv
+    expire_in: 30 days
 
 video:
-  tags:
-    - shell
   stage: visualisation
   needs:
     - simulation_run
