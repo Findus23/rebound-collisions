@@ -1,5 +1,6 @@
 import argparse
 from collections import namedtuple
+from math import log10
 
 import matplotlib
 import matplotlib.animation as animation
@@ -17,6 +18,7 @@ from utils import filename_from_argv
 
 class MyProgramArgs(argparse.Namespace):
     save_video: bool
+    log_time: bool
     fps: int
     duration: int
     y_axis: str
@@ -24,20 +26,15 @@ class MyProgramArgs(argparse.Namespace):
 
 plt.style.use("dark_background")
 cmap: Colormap = matplotlib.cm.get_cmap('Blues')
-# fps = 5
-# duration = 10  # s
-logtime = False  # TODO: support logarithmic time
 
 
-def update_line(num: int, args: MyProgramArgs, sa: SimulationArchive, ed: ExtraData, dots: PathCollection, title: Text):
-    # line = num * int((len(data) / total_frames))
+def update_plot(num: int, args: MyProgramArgs, sa: SimulationArchive, ed: ExtraData, dots: PathCollection, title: Text):
     total_frames = args.fps * args.duration
-    # print(line, num)
-    if logtime:
-        timestep = total_frames
+    if args.log_time:
+        log_timestep = (log10(ed.meta.current_time) - log10(50000)) / total_frames
+        time = 10 ** ((num + log10(50000) / log_timestep) * log_timestep)
     else:
         timestep = ed.meta.current_time / total_frames
-        # timestep = 10e6 / total_frames
         time = num * timestep
     print(time)
     sim = sa.getSimulation(t=time)
@@ -52,13 +49,9 @@ def update_line(num: int, args: MyProgramArgs, sa: SimulationArchive, ed: ExtraD
     p: Particle
 
     water_fractions = []
-    for p in sim.particles[3:]:
-        # try:
+    for p in sim.particles[1:]:
         pd: ParticleData = ed.pd(p)
         wf = pd.water_mass_fraction
-        # except KeyError:  # gas planet
-        #     print(p.hash.value)
-        #     wf = 0
         water_fractions.append(wf)
     # a, e, i, M, M_rat = data[line]
     # title.set_text(f"({len(a)}) {ages[line]:.2f}K Years")
@@ -77,9 +70,7 @@ def update_line(num: int, args: MyProgramArgs, sa: SimulationArchive, ed: ExtraD
     dots.set_offsets(bla.T)
     water_fractions = np.array(water_fractions)
     color_val = (np.log10(water_fractions) + 5) / 5
-    print(color_val)
     colors = cmap(color_val)
-    print(colors)
     dots.set_sizes(3 * m / np.mean(m[3:]))
     dots.set_color(colors)
     # plt.savefig("tmp/" + str(num) + ".pdf",transparent=True)
@@ -108,7 +99,7 @@ def main(args: MyProgramArgs):
         plt.ylim(-0.1, 1)  # e
         plt.ylabel("e")
     elif args.y_axis == "i":
-        plt.ylim(0, 90)  # i
+        plt.ylim(0, 4)  # i
         plt.ylabel("i")
     elif args.y_axis == "Omega":
         plt.ylim(0, 360)  # i
@@ -123,10 +114,11 @@ def main(args: MyProgramArgs):
     fig1.colorbar(ScalarMappable(norm=Normalize(vmin=-5, vmax=0), cmap=cmap), label="log(water fraction)")
 
     plt.tight_layout()
-    line_ani = animation.FuncAnimation(fig1, update_line, total_frames, fargs=(args, sa, ed, l, title),
+    line_ani = animation.FuncAnimation(fig1, update_plot, total_frames, fargs=(args, sa, ed, l, title),
                                        interval=1000 / args.fps, repeat=False)
     if args.save_video:
-        line_ani.save(str(fn.with_suffix(".mp4")), dpi=200)
+        name=f"{args.y_axis}_{args.log_time}"
+        line_ani.save(str(fn.with_suffix(f".{name}.mp4")), dpi=200)
     else:
         plt.show()
 
@@ -139,6 +131,7 @@ if __name__ == "__main__":
     parser.add_argument("file")
     parser.add_argument("-v", "--save-video", action="store_true",
                         help="save video as .mp4 file")
+    parser.add_argument("-l", "--log-time", action="store_true", help="logarithmic time")
     parser.add_argument("--fps", default=5, type=int,
                         help="frames per second")
     parser.add_argument("--duration", default=10, type=int,
