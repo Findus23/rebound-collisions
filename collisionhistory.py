@@ -18,6 +18,8 @@ for particle in last_sim.particles:
     objects = []
     times = []
     hash = particle.hash.value
+    objects.append(ed.pdata[hash])
+    times.append(ed.meta.current_time)
 
     while True:
         print(f"looking at {hash}")
@@ -38,7 +40,7 @@ for particle in last_sim.particles:
             hash = parents[1]
     objects.append(ed.pdata[hash])
     times.append(0)  # TODO: check log-x
-    if len(times) < 2:
+    if len(times) < 3:
         continue
     masses = [p.total_mass for p in objects]
     wmfs = [p.water_mass_fraction for p in objects]
