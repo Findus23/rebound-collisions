@@ -89,7 +89,7 @@ def main(args: MyProgramArgs):
 
     fn = filename_from_argv()
     sa = SimulationArchive(str(fn.with_suffix(".bin")))
-    ed = ExtraData.load(fn.with_suffix(".extra.json"))
+    ed = ExtraData.load(fn)
 
     plt.xlim(0, 10)
     plt.xlabel("a")

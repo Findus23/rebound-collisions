@@ -5,7 +5,7 @@ from extradata import ExtraData, CollisionMeta
 from utils import filename_from_argv
 
 fn = filename_from_argv()
-ed = ExtraData.load(fn.with_suffix(".extra.json"))
+ed = ExtraData.load(fn)
 sa = SimulationArchive(str(fn.with_suffix(".bin")))
 
 last_sim: Simulation = sa[-1]
