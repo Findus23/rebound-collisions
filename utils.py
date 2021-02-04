@@ -40,11 +40,17 @@ def innermost_period(sim: Simulation) -> float:
     return orb.P
 
 
-def total_impulse(sim: Simulation) -> float:
+def total_momentum(sim: Simulation) -> float:
     total = 0
-    p: Particle
     for p in sim.particles:
         total += linalg.norm(p.vxyz) * p.m
+    return total
+
+
+def total_mass(sim: Simulation) -> float:
+    total = 0
+    for p in sim.particles:
+        total += p.m
     return total
 
 
@@ -130,7 +136,7 @@ def reorder_particles(sim: Simulation, ed: ExtraData) -> None:
     assert sim.N == original_N
 
 
-def process_friendlyness(fn:Path) -> None:
+def process_friendlyness(fn: Path) -> None:
     if socket.gethostname() == "standpc":
         # only handle other computers specially
         return

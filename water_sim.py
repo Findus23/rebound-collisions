@@ -13,7 +13,7 @@ from scipy.constants import astronomical_unit, mega
 from extradata import ExtraData, ParticleData
 from merge import merge_particles, handle_escape
 from radius_utils import radius
-from utils import unique_hash, filename_from_argv, innermost_period, total_impulse, process_friendlyness
+from utils import unique_hash, filename_from_argv, innermost_period, total_momentum, process_friendlyness, total_mass
 
 MIN_TIMESTEP_PER_ORBIT = 20
 PERFECT_MERGING = False
@@ -109,7 +109,14 @@ def main(fn: Path, testrun=False):
         extradata.meta.initial_N = sim.N
         extradata.meta.initial_N_planetesimal = num_planetesimals
         extradata.meta.initial_N_embryo = num_embryos
-        extradata.energy.set_initial_energy(sim.calculate_energy())
+        extradata.history.append(
+            energy=sim.calculate_energy(),
+            momentum=total_momentum(sim),
+            total_mass=total_mass(sim),
+            time=sim.t,
+            N=sim.N,
+            N_active=sim.N_active
+        )
         cputimeoffset = walltimeoffset = 0
         t = 0
     else:
@@ -118,7 +125,7 @@ def main(fn: Path, testrun=False):
         copy(fn.with_suffix(".bin"), fn.with_suffix(".bak.bin"))
         copy(fn.with_suffix(".extra.json"), fn.with_suffix(".extra.bak.json"))
         sa = SimulationArchive(str(fn.with_suffix(".bin")))
-        extradata = ExtraData.load(fn.with_suffix(".extra.json"))
+        extradata = ExtraData.load(fn)
         tmax = extradata.meta.tmax
         per_savestep = extradata.meta.per_savestep
         t = extradata.meta.current_time - per_savestep
@@ -171,10 +178,15 @@ def main(fn: Path, testrun=False):
         extradata.meta.walltime = time.perf_counter() - start + walltimeoffset
         extradata.meta.cputime = time.process_time() + cputimeoffset
         extradata.meta.current_time = t
-        # extradata.meta.current_steps = i
-        extradata.energy.add_energy_value(sim.calculate_energy())
-        print("total impulse", total_impulse(sim))
-        extradata.save(fn.with_suffix(".extra.json"))
+        extradata.history.append(
+            energy=sim.calculate_energy(),
+            momentum=total_momentum(sim),
+            total_mass=total_mass(sim),
+            time=sim.t,
+            N=sim.N,
+            N_active=sim.N_active
+        )
+        extradata.save(fn)
         assert sim.dt < innermost_period(sim) / MIN_TIMESTEP_PER_ORBIT
         print("fraction", innermost_period(sim) / MIN_TIMESTEP_PER_ORBIT)
         if abort:

@@ -227,7 +227,10 @@ def handle_escape(sim: Simulation, ed: ExtraData):
         raise RuntimeError("Escape without escaping particle")
     ed.pd(escaped_particle).escaped = sim.t
     sim.remove(hash=escaped_particle.hash)
+    del escaped_particle  # to avoid using the invalid pointer afterwards
 
     # reorder_particles(sim, ed)
     sim.move_to_com()
     sim.integrator_synchronize()
+    sim.ri_mercurius.recalculate_coordinates_this_timestep = 1
+    sim.ri_mercurius.recalculate_dcrit_this_timestep = 1

@@ -114,27 +114,28 @@ class CollisionTree:
         return self._tree[particle.hash.value]
 
 
-class EnergyConservation:
+class History:
     def __init__(self):
-        self._dEs = []
-        self.initial_energy = None
+        self.energy = []
+        self.momentum = []
+        self.total_mass = []
+        self.time = []
+        self.N = []
+        self.N_active = []
 
-    def set_initial_energy(self, initial_energy: float) -> None:
-        self.initial_energy = initial_energy
-
-    def add_energy_value(self, energy: float) -> None:
-        dE = abs((energy - self.initial_energy) / self.initial_energy)
-        self._dEs.append(dE)
+    def append(self, energy: float, momentum: float, total_mass: float, time: float, N: int, N_active: int):
+        self.energy.append(energy)
+        self.momentum.append(momentum)
+        self.total_mass.append(total_mass)
+        self.time.append(time)
+        self.N.append(N)
+        self.N_active.append(N_active)
 
     def save(self):
-        return {
-            "initial_energy": self.initial_energy,
-            "dEs": self._dEs
-        }
+        return self.__dict__
 
     def load(self, data):
-        self.initial_energy = data["initial_energy"]
-        self._dEs = data["dEs"]
+        self.__dict__ = data
 
 
 class ExtraData:
@@ -143,31 +144,33 @@ class ExtraData:
         self.tree = CollisionTree()
         self.pdata: Dict[int, ParticleData] = {}
         self.meta = Meta()
-        self.energy = EnergyConservation()
+        self.history = History()
 
-    def save(self, filename: Path):
+    def save(self, base_filename: Path):
         pdata = {}
         for k, v in self.pdata.items():
             pdata[k] = v.__dict__
 
-        with filename.open("w") as f:
+        with base_filename.with_suffix(".extra.json").open("w") as f:
             json.dump({
                 "meta": self.meta.save(),
                 "pdata": pdata,
                 "tree": self.tree.save(),
-                "energy": self.energy.save()
             }, f, indent=2)
+        with base_filename.with_suffix(".history.json").open("w") as f:
+            json.dump(self.history.save(), f, indent=2)
 
     @classmethod
-    def load(cls, filename: Path):
-        with filename.open() as f:
+    def load(cls, base_filename: Path):
+        with base_filename.with_suffix(".extra.json").open() as f:
             data = json.load(f)
+        with base_filename.with_suffix(".history.json").open() as f:
+            history = json.load(f)
         self = cls()
         self.meta = Meta(**data["meta"])
-
+        self.history = History()
+        self.history.load(history)
         self.tree.load(data["tree"])
-        self.energy.load(data["energy"])
-        # self.tree._dEs = data["dEs"]
 
         for k, v in data["pdata"].items():
             self.pdata[int(k)] = ParticleData(**v)
