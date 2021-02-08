@@ -1,17 +1,17 @@
 import re
 import time
+from ctypes import Structure, c_uint32, c_double, c_uint, cdll, c_int
 from math import radians
 from pathlib import Path
 from shutil import copy
 from sys import argv
 
-from rebound import Simulation, Particle, NoParticles, Escape, \
-    SimulationArchive
+from rebound import Simulation, Particle, NoParticles, SimulationArchive
 from rebound.simulation import POINTER_REB_SIM, reb_collision
 from scipy.constants import astronomical_unit, mega, year
 
 from extradata import ExtraData, ParticleData
-from merge import merge_particles, handle_escape
+from merge import merge_particles
 from radius_utils import radius
 from utils import unique_hash, filename_from_argv, innermost_period, total_momentum, process_friendlyness, total_mass, \
     third_kepler_law, solar_radius
@@ -21,6 +21,18 @@ PERFECT_MERGING = False
 INITCON_FILE = Path("initcon/conditions_many.input")
 
 abort = False
+
+
+class hb_event(Structure):
+    _fields_ = [("hash", c_uint32),
+                ("time", c_double),
+                ("new", c_uint)]
+    hash: int
+    time: float
+    new: int
+
+
+hb_event_list = hb_event * 500
 
 
 def main(fn: Path, testrun=False):
@@ -35,7 +47,6 @@ def main(fn: Path, testrun=False):
         # sim.boundary = "open"
         # boxsize = 100
         # sim.configure_box(boxsize)
-        sim.exit_max_distance = 30
         sim.integrator = "mercurius"
         # sim.collision = 'line'
         sim.dt = 1e-2
@@ -54,12 +65,6 @@ def main(fn: Path, testrun=False):
         extradata.meta.per_savestep = per_savestep
         extradata.meta.num_savesteps = num_savesteps
         extradata.meta.perfect_merging = PERFECT_MERGING
-
-        innermost_semimajor_axis = third_kepler_law(
-            orbital_period=sim.dt * year * MIN_TIMESTEP_PER_ORBIT
-        ) / astronomical_unit
-        print(f"innermost semimajor axis is {innermost_semimajor_axis}")
-
 
         initcon = INITCON_FILE.read_text()
         num_embryos = int(re.search(r"Generated (\d+) minor bodies", initcon, re.MULTILINE).group(1))
@@ -145,6 +150,16 @@ def main(fn: Path, testrun=False):
         cputimeoffset = extradata.meta.cputime
         walltimeoffset = extradata.meta.walltime
 
+    clibheartbeat = cdll.LoadLibrary("heartbeat/heartbeat.so")
+    sim.heartbeat = clibheartbeat.heartbeat
+    innermost_semimajor_axis = third_kepler_law(
+        orbital_period=sim.dt * year * MIN_TIMESTEP_PER_ORBIT
+    ) / astronomical_unit
+    print(f"innermost semimajor axis is {innermost_semimajor_axis}")
+
+    c_double.in_dll(clibheartbeat, "min_distance_from_sun_squared").value = innermost_semimajor_axis ** 2
+    c_double.in_dll(clibheartbeat, "max_distance_from_sun_squared").value = 30 ** 2
+
     assert sim.dt < innermost_period(sim) / MIN_TIMESTEP_PER_ORBIT
 
     def collision_resolve_handler(sim_p: POINTER_REB_SIM, collision: reb_collision) -> int:
@@ -174,13 +189,29 @@ def main(fn: Path, testrun=False):
             print("dt", sim.dt)
             print("t", t)
             t += per_savestep
-        except Escape:
-            handle_escape(sim, extradata)
         except NoParticles:
             print("No Particles left")
             abort = True
         print("N", sim.N)
         print("N_active", sim.N_active)
+
+        escape: hb_event
+        sun_collision: hb_event
+        for escape in hb_event_list.in_dll(clibheartbeat, "hb_escapes"):
+            if not escape.new:
+                continue
+            print("escape:", escape.time, escape.hash)
+            extradata.pdata[escape.hash].escaped = escape.time
+            escape.new = 0  # make sure to not handle it again
+        c_int.in_dll(clibheartbeat, "hb_escape_index").value = 0
+        for sun_collision in hb_event_list.in_dll(clibheartbeat, "hb_sun_collisions"):
+            if not sun_collision.new:
+                continue
+            print("sun collision:", sun_collision.time, sun_collision.hash)
+            extradata.pdata[sun_collision.hash].collided_with_sun = sun_collision.time
+            sun_collision.new = 0
+        print(c_int.in_dll(clibheartbeat, "hb_sun_collision_index").value, "found")
+        c_int.in_dll(clibheartbeat, "hb_sun_collision_index").value = 0
         sim.simulationarchive_snapshot(str(fn.with_suffix(".bin")))
         extradata.meta.walltime = time.perf_counter() - start + walltimeoffset
         extradata.meta.cputime = time.process_time() + cputimeoffset
@@ -194,8 +225,8 @@ def main(fn: Path, testrun=False):
             N_active=sim.N_active
         )
         extradata.save(fn)
-        assert sim.dt < innermost_period(sim) / MIN_TIMESTEP_PER_ORBIT
         print("fraction", innermost_period(sim) / MIN_TIMESTEP_PER_ORBIT)
+        # assert sim.dt < innermost_period(sim) / MIN_TIMESTEP_PER_ORBIT
         if abort:
             exit(1)
     print("finished")

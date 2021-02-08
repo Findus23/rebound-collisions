@@ -13,6 +13,7 @@ class ParticleData:
     water_mass_fraction: float
     type: str
     escaped: float = None
+    collided_with_sun: float = None
     total_mass: float = None
 
     @property

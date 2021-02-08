@@ -214,23 +214,3 @@ def merge_particles(sim_p: POINTER_REB_SIM, collision: reb_collision, ed: ExtraD
         return 2
     else:
         return 1
-
-
-def handle_escape(sim: Simulation, ed: ExtraData):
-    escaped_particle = None
-    p: Particle
-    for p in sim.particles:
-        distance_squared = p.x ** 2 + p.y ** 2 + p.z ** 2
-        if distance_squared > sim.exit_max_distance ** 2:
-            escaped_particle = p
-    if not escaped_particle:
-        raise RuntimeError("Escape without escaping particle")
-    ed.pd(escaped_particle).escaped = sim.t
-    sim.remove(hash=escaped_particle.hash)
-    del escaped_particle  # to avoid using the invalid pointer afterwards
-
-    # reorder_particles(sim, ed)
-    sim.move_to_com()
-    sim.integrator_synchronize()
-    sim.ri_mercurius.recalculate_coordinates_this_timestep = 1
-    sim.ri_mercurius.recalculate_dcrit_this_timestep = 1
