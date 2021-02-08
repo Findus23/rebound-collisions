@@ -226,7 +226,7 @@ def main(fn: Path, testrun=False):
         )
         extradata.save(fn)
         print("fraction", innermost_period(sim) / MIN_TIMESTEP_PER_ORBIT)
-        # assert sim.dt < innermost_period(sim) / MIN_TIMESTEP_PER_ORBIT
+        assert sim.dt < innermost_period(sim) / MIN_TIMESTEP_PER_ORBIT
         if abort:
             exit(1)
     print("finished")
