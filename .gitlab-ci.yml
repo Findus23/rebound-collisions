@@ -38,6 +38,11 @@ mypy:
 simulation_run:
   stage: simulation
   needs: [ ]
+  before_script:
+    - cd heartbeat
+    - poetry run python symlinks.py
+    - ./build.sh
+    - cd ..
   script:
     - poetry run python water_sim.py test_simulationrun test
   artifacts:

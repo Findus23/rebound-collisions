@@ -23,12 +23,6 @@ void heartbeat(struct reb_simulation *sim) {
             struct reb_particle p = particles[i];
             double distance_squared = p.x * p.x + p.y * p.y + p.z * p.z;
             if (distance_squared > max_distance_from_sun_squared) {
-                printf("max: %f\n", max_distance_from_sun_squared);
-                printf("min: %f\n", min_distance_from_sun_squared);
-                printf("dist: %f\n", distance_squared);
-                printf("px: %f\n", p.x);
-                printf("py: %f\n", p.y);
-                printf("pz: %f\n", p.z);
                 printf("remove %u at t=%f (max)\n", p.hash, sim->t);
                 reb_remove_by_hash(sim, p.hash, 1);
                 hb_escapes[hb_escape_index].hash = p.hash;
