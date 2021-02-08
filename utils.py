@@ -11,9 +11,13 @@ from matplotlib.axes import Axes
 from matplotlib.figure import Figure
 from numpy import linalg
 from rebound import Simulation, Orbit, Particle, OrbitPlot
+from scipy.constants import pi, gravitational_constant
 from setproctitle import setproctitle
 
 from extradata import ExtraData
+
+solar_radius = 6.957e8
+solar_mass = 1.9885e+30
 
 
 def unique_hash() -> c_uint32:
@@ -38,6 +42,13 @@ def innermost_period(sim: Simulation) -> float:
             minp = p
     orb: Orbit = minp.orbit
     return orb.P
+
+
+def third_kepler_law(orbital_period: float):
+    return (
+                   gravitational_constant * solar_mass / (4 * pi ** 2)
+                   * orbital_period ** 2
+           ) ** (1 / 3)
 
 
 def total_momentum(sim: Simulation) -> float:

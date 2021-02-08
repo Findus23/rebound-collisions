@@ -8,12 +8,13 @@ from sys import argv
 from rebound import Simulation, Particle, NoParticles, Escape, \
     SimulationArchive
 from rebound.simulation import POINTER_REB_SIM, reb_collision
-from scipy.constants import astronomical_unit, mega
+from scipy.constants import astronomical_unit, mega, year
 
 from extradata import ExtraData, ParticleData
 from merge import merge_particles, handle_escape
 from radius_utils import radius
-from utils import unique_hash, filename_from_argv, innermost_period, total_momentum, process_friendlyness, total_mass
+from utils import unique_hash, filename_from_argv, innermost_period, total_momentum, process_friendlyness, total_mass, \
+    third_kepler_law, solar_radius
 
 MIN_TIMESTEP_PER_ORBIT = 20
 PERFECT_MERGING = False
@@ -54,6 +55,12 @@ def main(fn: Path, testrun=False):
         extradata.meta.num_savesteps = num_savesteps
         extradata.meta.perfect_merging = PERFECT_MERGING
 
+        innermost_semimajor_axis = third_kepler_law(
+            orbital_period=sim.dt * year * MIN_TIMESTEP_PER_ORBIT
+        ) / astronomical_unit
+        print(f"innermost semimajor axis is {innermost_semimajor_axis}")
+
+
         initcon = INITCON_FILE.read_text()
         num_embryos = int(re.search(r"Generated (\d+) minor bodies", initcon, re.MULTILINE).group(1))
         num_planetesimals = int(re.search(r"Generated (\d+) small bodies", initcon, re.MULTILINE).group(1))
@@ -92,7 +99,7 @@ def main(fn: Path, testrun=False):
             )
 
             if columns[1] == 0:  # that should not be needed, but nevertheless is
-                part = Particle(m=columns[0], hash=hash)
+                part = Particle(m=columns[0], hash=hash, r=solar_radius / astronomical_unit)
             else:
                 part = Particle(
                     m=columns[0], a=columns[1], e=columns[2],
