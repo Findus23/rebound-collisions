@@ -27,23 +27,21 @@ before_script:
   - curl -o initcon/conditions_many.input -u gitlabci:$COLLISION_SECRETS https://lw1.at/s/astro/collision-secrets/conditions_many.input
 
 mypy:
-  before_script:
-    - pip install mypy
   needs: [ ]
   stage: tests
   script:
+    - pip install mypy
     - mypy *.py
   allow_failure: true
 
 simulation_run:
   stage: simulation
   needs: [ ]
-  before_script:
+  script:
     - cd heartbeat
     - poetry run python symlinks.py
     - ./build.sh
     - cd ..
-  script:
     - poetry run python water_sim.py test_simulationrun test
   artifacts:
     paths:
