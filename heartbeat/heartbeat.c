@@ -15,6 +15,8 @@ struct hb_event hb_sun_collisions[500];
 int hb_escape_index = 0;
 int hb_sun_collision_index = 0;
 
+int needs_synchronize = 0
+
 void heartbeat(struct reb_simulation *sim) {
     if ((sim->steps_done % 100) == 0) {
         const struct reb_particle *const particles = sim->particles;
@@ -28,7 +30,9 @@ void heartbeat(struct reb_simulation *sim) {
                 hb_escapes[hb_escape_index].hash = p.hash;
                 hb_escapes[hb_escape_index].time = sim->t;
                 hb_escapes[hb_escape_index].new = 1;
+
                 hb_escape_index++;
+                needs_synchronize = 1
             } else if (distance_squared < min_distance_from_sun_squared) {
                 printf("remove %u at t=%f (min)\n", p.hash, sim->t);
                 reb_remove_by_hash(sim, p.hash, 1);
@@ -37,11 +41,9 @@ void heartbeat(struct reb_simulation *sim) {
                 hb_sun_collisions[hb_sun_collision_index].new = 1;
 
                 hb_sun_collision_index++;
+                needs_synchronize = 1
             }
-            if (
-                    (distance_squared > max_distance_from_sun_squared)
-                    || (distance_squared < min_distance_from_sun_squared)
-                    ) {
+            if (needs_synchronize) {
                 N--;
                 reb_move_to_com(sim);
                 reb_integrator_synchronize(sim);
