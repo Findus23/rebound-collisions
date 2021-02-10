@@ -14,7 +14,7 @@ from extradata import ExtraData, ParticleData
 from merge import merge_particles
 from radius_utils import radius
 from utils import unique_hash, filename_from_argv, innermost_period, total_momentum, process_friendlyness, total_mass, \
-    third_kepler_law, solar_radius
+    third_kepler_law, solar_radius, git_hash
 
 MIN_TIMESTEP_PER_ORBIT = 20
 PERFECT_MERGING = False
@@ -64,6 +64,7 @@ def main(fn: Path, testrun=False):
         extradata.meta.tmax = tmax
         extradata.meta.per_savestep = per_savestep
         extradata.meta.num_savesteps = num_savesteps
+        extradata.meta.git_hash = git_hash()
         extradata.meta.perfect_merging = PERFECT_MERGING
 
         initcon = INITCON_FILE.read_text()
@@ -146,6 +147,10 @@ def main(fn: Path, testrun=False):
         sim.ri_mercurius.recalculate_coordinates_this_timestep = 1
         sim.integrator_synchronize()
 
+        if extradata.meta.git_hash != git_hash():
+            print("warning: The saved output was originally run with another version of the code")
+            print(f"original: {extradata.meta.git_hash}")
+            print(f"current: {git_hash()}")
         num_savesteps = extradata.meta.num_savesteps
         cputimeoffset = extradata.meta.cputime
         walltimeoffset = extradata.meta.walltime
