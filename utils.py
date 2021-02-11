@@ -1,5 +1,6 @@
 import os
 import socket
+import subprocess
 from ctypes import c_uint32
 from pathlib import Path
 from random import randint
@@ -145,6 +146,11 @@ def reorder_particles(sim: Simulation, ed: ExtraData) -> None:
     # TODO: double-check meaning
     sim.testparticle_type = 1
     assert sim.N == original_N
+
+
+def git_hash() -> str:
+    output = subprocess.run(["git", "rev-parse", "--verify", "HEAD"], capture_output=True)
+    return output.stdout.decode()
 
 
 def process_friendlyness(fn: Path) -> None:
