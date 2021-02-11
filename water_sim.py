@@ -141,8 +141,8 @@ def main(fn: Path, testrun=False):
         extradata = ExtraData.load(fn)
         tmax = extradata.meta.tmax
         per_savestep = extradata.meta.per_savestep
-        t = extradata.meta.current_time - per_savestep
-        sim = sa.getSimulation(t=t)
+        t = extradata.meta.current_time
+        sim = sa.getSimulation(t=t - per_savestep)
         sim.move_to_com()
         sim.ri_mercurius.recalculate_coordinates_this_timestep = 1
         sim.integrator_synchronize()
@@ -200,6 +200,9 @@ def main(fn: Path, testrun=False):
         print("N", sim.N)
         print("N_active", sim.N_active)
 
+        print("fraction", innermost_period(sim) / MIN_TIMESTEP_PER_ORBIT)
+        assert sim.dt < innermost_period(sim) / MIN_TIMESTEP_PER_ORBIT
+
         escape: hb_event
         sun_collision: hb_event
         for escape in hb_event_list.in_dll(clibheartbeat, "hb_escapes"):
@@ -230,9 +233,8 @@ def main(fn: Path, testrun=False):
             N_active=sim.N_active
         )
         extradata.save(fn)
-        print("fraction", innermost_period(sim) / MIN_TIMESTEP_PER_ORBIT)
-        assert sim.dt < innermost_period(sim) / MIN_TIMESTEP_PER_ORBIT
         if abort:
+            print("aborted")
             exit(1)
     print("finished")
     fn.with_suffix(".lock").unlink()
