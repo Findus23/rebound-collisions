@@ -21,13 +21,18 @@ solar_radius = 6.957e8
 solar_mass = 1.9885e+30
 
 
-def unique_hash() -> c_uint32:
+def random_hash() -> c_uint32:
     """
     returns a (hopefully) unique 32 bit integer to be used as a particle hash
 
     when a collision occurs and ruins the output data, please complain to the universe
     """
     return c_uint32(randint(0, 2 ** 32 - 1))
+
+
+def unique_hash(ed: ExtraData) -> c_uint32:
+    ed.meta.hash_counter += 1
+    return c_uint32(ed.meta.hash_counter)
 
 
 def innermost_period(sim: Simulation) -> float:
@@ -38,11 +43,11 @@ def innermost_period(sim: Simulation) -> float:
     minp = None
     mina = float("inf")
     for p in sim.particles[1:]:
-        if p.a < mina:
-            mina = p.a
+        if abs(p.a) < mina:
+            mina = abs(p.a)
             minp = p
     orb: Orbit = minp.orbit
-    return orb.P
+    return abs(orb.P)
 
 
 def third_kepler_law(orbital_period: float):

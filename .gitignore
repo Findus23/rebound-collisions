@@ -14,3 +14,5 @@ data/
 tmp/
 notes.md
 poc*
+plots/
+*.md

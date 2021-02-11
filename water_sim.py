@@ -76,7 +76,7 @@ def main(fn: Path, testrun=False):
             if line.startswith("#") or line.startswith("ERROR") or line == "\n" or not line:
                 continue
             columns = list(map(float, line.split()))
-            hash = unique_hash()
+            hash = unique_hash(extradata)
             if len(columns) > 7:
                 # print(columns[7:])
                 cmf, mmf, wmf = columns[7:]
@@ -141,8 +141,9 @@ def main(fn: Path, testrun=False):
         extradata = ExtraData.load(fn)
         tmax = extradata.meta.tmax
         per_savestep = extradata.meta.per_savestep
-        t = extradata.meta.current_time
-        sim = sa.getSimulation(t=t - per_savestep)
+        sim = sa[-1]
+        t = round(sim.t + per_savestep)
+        print(f"continuing from {t}")
         sim.move_to_com()
         sim.ri_mercurius.recalculate_coordinates_this_timestep = 1
         sim.integrator_synchronize()

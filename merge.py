@@ -6,7 +6,7 @@ from typing import Tuple
 
 import numpy as np
 from numpy import linalg, sqrt
-from rebound import Simulation, Particle, reb_simulation_integrator_mercurius
+from rebound import Simulation, Particle
 from rebound.simulation import POINTER_REB_SIM, reb_collision
 from scipy.constants import astronomical_unit, G
 
@@ -81,50 +81,52 @@ def merge_particles(sim_p: POINTER_REB_SIM, collision: reb_collision, ed: ExtraD
     print("--------------")
     print("colliding")
     sim: Simulation = sim_p.contents
-    print("current time step", sim.dt, )
+    print("current time step", sim.dt)
     print("mode", sim.ri_mercurius.mode)
 
-    # the assignment to cp1 or cp2 is mostly random
-    # (cp1 is the one with a lower index in sim.particles)
-    # naming them projectile or target is therefore also arbitrary
+    # the assignment to cp1 or cp2 seems to be random
     # also look at a copy instead of the original particles
     # to avoid issues after they have been modified
-    cp1: Particle = sim.particles[collision.p1].copy()  # projectile
-    cp2: Particle = sim.particles[collision.p2].copy()  # target
+    cp1: Particle = sim.particles[collision.p1].copy()
+    cp2: Particle = sim.particles[collision.p2].copy()
 
-    # just calling the more massive one the main particle to keep its type/name
+    # just calling the more massive one the target to keep its type/name
     # Sun<->Protoplanet -> Sun
+    # and to keep collsions mostly reproducable
     if cp1.m > cp2.m:
-        main_particle_id = collision.p1
-        main_particle = cp1
+        target = cp1
+        projectile = cp2
+    else:  # also when masses are the same
+        target = cp2
+        projectile = cp1
+
+    if collision.p1 > collision.p2:
+        lower_index_particle = cp2
     else:
-        main_particle_id = collision.p2
-        main_particle = cp2
+        lower_index_particle = cp1
 
-    print(f"colliding {ed.pd(cp1).type} with {ed.pd(cp2).type}")
+    print(f"colliding {ed.pd(target).type} with {ed.pd(projectile).type}")
 
-    projectile_wmf = ed.pd(cp1).water_mass_fraction
-    target_wmf = ed.pd(cp2).water_mass_fraction
+    projectile_wmf = ed.pd(projectile).water_mass_fraction
+    target_wmf = ed.pd(target).water_mass_fraction
 
     # get the velocities, velocity differences and unit vector as numpy arrays
     # all units are in sytem units (so AU/year)
-    v1 = np.array(cp1.vxyz)
-    v2 = np.array(cp2.vxyz)
-    r1 = np.array(cp1.xyz)
-    r2 = np.array(cp2.xyz)
+    v1 = np.array(target.vxyz)
+    v2 = np.array(projectile.vxyz)
+    r1 = np.array(target.xyz)
+    r2 = np.array(projectile.xyz)
     vdiff = v2 - v1
     rdiff = r2 - r1
     vdiff_n = linalg.norm(vdiff)
     rdiff_n = linalg.norm(rdiff)
     print("dt", sim.dt)
-    merc: reb_simulation_integrator_mercurius = sim.ri_mercurius
-    print("current mode", "ias15" if merc.mode else "whfast")
     # during a collision ias15 should always be used, otherwise something weird has happend
-    assert merc.mode == 1
+    assert sim.ri_mercurius.mode == 1
 
     print("rdiff", rdiff)
     print("vdiff", vdiff)
-    print("sum_radii", cp1.r + cp2.r)
+    print("sum_radii", target.r + projectile.r)
     print("rdiff_n", rdiff_n)
     print("vdiff_n", vdiff_n)
     ang = float(np.degrees(np.arccos(np.dot(rdiff, vdiff) / (rdiff_n * vdiff_n))))
@@ -134,11 +136,10 @@ def merge_particles(sim_p: POINTER_REB_SIM, collision: reb_collision, ed: ExtraD
     print("angle_deg", ang)
     print()
     # get mass fraction
-    # if it is >1 it will be inverted during interpolation
-    gamma = cp1.m / cp2.m
+    gamma = projectile.m / target.m
 
     # calculate mutual escape velocity (for norming the velocities in the interpolation) in SI units
-    escape_velocity = sqrt(2 * G * (cp1.m + cp2.m) / ((cp1.r + cp2.r) * astronomical_unit))
+    escape_velocity = sqrt(2 * G * (target.m + projectile.m) / ((target.r + projectile.r) * astronomical_unit))
 
     print("interpolating")
 
@@ -150,7 +151,7 @@ def merge_particles(sim_p: POINTER_REB_SIM, collision: reb_collision, ed: ExtraD
         velocity_original=vdiff_n,
         escape_velocity=escape_velocity,
         gamma=gamma,
-        projectile_mass=cp1.m,
+        projectile_mass=projectile.m,
         target_water_fraction=target_wmf,
         projectile_water_fraction=projectile_wmf,
     )
@@ -160,14 +161,14 @@ def merge_particles(sim_p: POINTER_REB_SIM, collision: reb_collision, ed: ExtraD
     print(water_ret, stone_ret)
 
     meta.collision_velocities = (v1.tolist(), v2.tolist())
-    meta.collision_positions = (cp1.xyz, cp2.xyz)
-    meta.collision_radii = (cp1.r, cp2.r)
+    meta.collision_positions = (target.xyz, projectile.xyz)
+    meta.collision_radii = (target.r, projectile.r)
 
-    hash = unique_hash()  # hash for newly created particle
+    hash = unique_hash(ed)  # hash for newly created particle
 
     # handle loss of water and core mass
-    water_mass = cp1.m * projectile_wmf + cp2.m * target_wmf
-    stone_mass = cp1.m + cp2.m - water_mass
+    water_mass = target.m * target_wmf + projectile.m * projectile_wmf
+    stone_mass = target.m + projectile.m - water_mass
 
     water_mass *= water_ret
     stone_mass *= stone_ret
@@ -176,14 +177,14 @@ def merge_particles(sim_p: POINTER_REB_SIM, collision: reb_collision, ed: ExtraD
     final_wmf = water_mass / total_mass
     print(final_wmf)
     # create new object preserving momentum
-    merged_planet = (cp1 * cp1.m + cp2 * cp2.m) / total_mass
+    merged_planet = (target * target.m + projectile * projectile.m) / total_mass
     merged_planet.m = total_mass
     merged_planet.hash = hash
 
     merged_planet.r = radius(merged_planet.m, final_wmf) / astronomical_unit
     ed.pdata[hash.value] = ParticleData(
         water_mass_fraction=final_wmf,
-        type=ed.pd(main_particle).type,
+        type=ed.pd(target).type,
         total_mass=total_mass
     )
 
@@ -194,9 +195,9 @@ def merge_particles(sim_p: POINTER_REB_SIM, collision: reb_collision, ed: ExtraD
     meta.time = sim.t
     pprint(meta)
 
-    ed.tree.add(cp1, cp2, merged_planet, meta)
+    ed.tree.add(target, projectile, merged_planet, meta)
 
-    sim.particles[main_particle_id] = merged_planet
+    sim.particles[lower_index_particle.index] = merged_planet
 
     sim.move_to_com()
     sim.integrator_synchronize()
@@ -209,8 +210,9 @@ def merge_particles(sim_p: POINTER_REB_SIM, collision: reb_collision, ed: ExtraD
     # A return value of 0 indicates that both particles remain in the simulation.
     # A return value of 1 (2) indicates that particle 1 (2) should be removed from the simulation.
     # A return value of 3 indicates that both particles should be removed from the simulation.
-
-    if main_particle_id == collision.p1:
+    # always keep lower index particle and delete other one
+    # this keeps the N_active working
+    if lower_index_particle.index == collision.p1:
         return 2
     else:
         return 1
