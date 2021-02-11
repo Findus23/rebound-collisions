@@ -71,6 +71,7 @@ class Meta:
     walltime: int = None  # seconds
     cputime: int = None  # seconds
     current_time: float = None
+    git_hash: str = None
     perfect_merging: bool = None
 
     def save(self):
