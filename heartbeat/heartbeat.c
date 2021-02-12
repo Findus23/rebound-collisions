@@ -18,7 +18,7 @@ int hb_sun_collision_index = 0;
 int needs_synchronize = 0;
 
 void heartbeat(struct reb_simulation *sim) {
-    if ((sim->steps_done % 100) == 0) {
+    if ((sim->steps_done % 10) == 0) {
         const struct reb_particle *const particles = sim->particles;
         int N = sim->N - sim->N_var;
         for (int i = 1; i < N; i++) { // skip sun
