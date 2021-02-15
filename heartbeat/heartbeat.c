@@ -1,4 +1,5 @@
 #include "rebound.h"
+#include <math.h>
 
 double min_distance_from_sun_squared = 0;
 double max_distance_from_sun_squared = 0;
@@ -44,6 +45,8 @@ void heartbeat(struct reb_simulation *sim) {
                 needs_synchronize = 1;
             }
             if (needs_synchronize) {
+                printf("distance: %f\n", sqrt(distance_squared));
+                needs_synchronize = 0;
                 N--;
                 reb_move_to_com(sim);
                 reb_integrator_synchronize(sim);
