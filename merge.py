@@ -83,7 +83,8 @@ def merge_particles(sim_p: POINTER_REB_SIM, collision: reb_collision, ed: ExtraD
     sim: Simulation = sim_p.contents
     print("current time step", sim.dt)
     print("mode", sim.ri_mercurius.mode)
-
+    print(f"p1 is {collision.p1}")
+    print(f"p2 is {collision.p2}")
     # the assignment to cp1 or cp2 seems to be random
     # also look at a copy instead of the original particles
     # to avoid issues after they have been modified
@@ -101,11 +102,12 @@ def merge_particles(sim_p: POINTER_REB_SIM, collision: reb_collision, ed: ExtraD
         projectile = cp1
 
     if collision.p1 > collision.p2:
-        lower_index_particle = cp2
+        lower_index_particle_index = collision.p2
     else:
-        lower_index_particle = cp1
+        lower_index_particle_index = collision.p1
 
-    print(f"colliding {ed.pd(target).type} with {ed.pd(projectile).type}")
+    print(f"colliding {target.hash.value} ({ed.pd(target).type}) "
+          f"with {projectile.hash.value} ({ed.pd(projectile).type})")
 
     projectile_wmf = ed.pd(projectile).water_mass_fraction
     target_wmf = ed.pd(target).water_mass_fraction
@@ -197,7 +199,7 @@ def merge_particles(sim_p: POINTER_REB_SIM, collision: reb_collision, ed: ExtraD
 
     ed.tree.add(target, projectile, merged_planet, meta)
 
-    sim.particles[lower_index_particle.index] = merged_planet
+    sim.particles[lower_index_particle_index] = merged_planet
 
     sim.move_to_com()
     sim.integrator_synchronize()
@@ -212,7 +214,9 @@ def merge_particles(sim_p: POINTER_REB_SIM, collision: reb_collision, ed: ExtraD
     # A return value of 3 indicates that both particles should be removed from the simulation.
     # always keep lower index particle and delete other one
     # this keeps the N_active working
-    if lower_index_particle.index == collision.p1:
+    if lower_index_particle_index == collision.p1:
+        print("deleting p2")
         return 2
     else:
+        print("deleting p1")
         return 1
