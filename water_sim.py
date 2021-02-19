@@ -54,6 +54,7 @@ def main(fn: Path, testrun=False):
         sim.ri_ias15.min_dt = 0.0001 / 365
         sim.collision = "direct"
         sim.ri_mercurius.hillfac = 3.
+        sim.testparticle_type = 1
         tmax = 200 * mega
         num_savesteps = 20000
         if testrun:
