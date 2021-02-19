@@ -6,6 +6,7 @@ from pathlib import Path
 from shutil import copy
 from sys import argv
 
+import rebound
 from rebound import Simulation, Particle, NoParticles, SimulationArchive
 from rebound.simulation import POINTER_REB_SIM, reb_collision
 from scipy.constants import astronomical_unit, mega, year
@@ -65,6 +66,7 @@ def main(fn: Path, testrun=False):
         extradata.meta.per_savestep = per_savestep
         extradata.meta.num_savesteps = num_savesteps
         extradata.meta.git_hash = git_hash()
+        extradata.meta.git_hash = rebound.__githash__
         extradata.meta.perfect_merging = PERFECT_MERGING
 
         initcon = INITCON_FILE.read_text()

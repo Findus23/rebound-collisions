@@ -73,6 +73,7 @@ class Meta:
     current_time: float = None
     hash_counter: int = 0
     git_hash: str = None
+    rebound_hash: str = None
     perfect_merging: bool = None
 
     def save(self):
