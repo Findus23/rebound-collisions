@@ -27,8 +27,11 @@ class MyProgramArgs(argparse.Namespace):
 plt.style.use("dark_background")
 cmap: Colormap = matplotlib.cm.get_cmap('Blues')
 
+mean_mass = None
+
 
 def update_plot(num: int, args: MyProgramArgs, sa: SimulationArchive, ed: ExtraData, dots: PathCollection, title: Text):
+    global mean_mass
     total_frames = args.fps * args.duration
     if args.log_time:
         log_timestep = (log10(ed.meta.current_time) - log10(50000)) / total_frames
@@ -71,7 +74,9 @@ def update_plot(num: int, args: MyProgramArgs, sa: SimulationArchive, ed: ExtraD
     water_fractions = np.array(water_fractions)
     color_val = (np.log10(water_fractions) + 5) / 5
     colors = cmap(color_val)
-    dots.set_sizes(3 * m / np.mean(m[3:]))
+    if not mean_mass:
+        mean_mass = np.mean(m[3:])
+    dots.set_sizes(3 * m / mean_mass)
     dots.set_color(colors)
     # plt.savefig("tmp/" + str(num) + ".pdf",transparent=True)
     return dots, title
@@ -117,7 +122,7 @@ def main(args: MyProgramArgs):
     line_ani = animation.FuncAnimation(fig1, update_plot, total_frames, fargs=(args, sa, ed, l, title),
                                        interval=1000 / args.fps, repeat=False)
     if args.save_video:
-        name=f"{args.y_axis}_{args.log_time}"
+        name = f"{args.y_axis}_{args.log_time}"
         line_ani.save(str(fn.with_suffix(f".{name}.mp4")), dpi=200)
     else:
         plt.show()
