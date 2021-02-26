@@ -217,6 +217,8 @@ def merge_particles(sim_p: POINTER_REB_SIM, collision: reb_collision, ed: ExtraD
     if lower_index_particle_index == collision.p1:
         print("deleting p2")
         return 2
-    else:
+    elif lower_index_particle_index == collision.p2:
         print("deleting p1")
         return 1
+    else:
+        raise ValueError("invalid index")
