@@ -9,6 +9,11 @@ fn = filename_from_argv()
 ed = ExtraData.load(fn)
 
 dot = Digraph(comment='Collisions')
+
+dot.engine = "neato"
+
+if dot.engine == "neato":
+    dot.attr("graph", overlap="false")
 interacting_objects = set()
 for merged, originals in ed.tree.get_tree().items():
     first_parent = True
@@ -29,11 +34,11 @@ for merged, originals in ed.tree.get_tree().items():
 for name in ed.pdata.keys():
     object = ed.pdata[name]
     if object.type == "sun":
-        displayname = "Sun"
+        displayname = f"{name} (Sun)"
     elif object.type == "gas giant":
-        displayname = "gas giant"
+        displayname = f"{name} (gas giant)"
     else:
-        displayname = name
+        displayname = str(name)
     try:
         mass = object.total_mass
     except KeyError:
@@ -42,9 +47,10 @@ for name in ed.pdata.keys():
              shape='box' if object.type == "planetesimal" else "ellipse")
     if object.escaped:
         dot.edge(str(name), str("escaped"))
+    if object.collided_with_sun:
+        dot.edge(str(name), str("collided with sun"))
 
-# dot.engine = 'neato'
 if environ.get("CI"):
     dot.save(fn.with_suffix(".gv"))
 else:
-    dot.render(fn.with_suffix(".gv"), view=True, format="pdf")
+    dot.render(fn.with_suffix(".gv"), view=True, format="svg")
