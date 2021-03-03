@@ -53,6 +53,7 @@ visualisation:
   needs:
     - simulation_run
   script:
+    - mkdir plots
     - poetry run python analyze.py test_simulationrun
     - poetry run python collisionhistory.py test_simulationrun
     - poetry run python collisionstats.py test_simulationrun
