@@ -1,3 +1,5 @@
+from pathlib import Path
+
 from matplotlib import pyplot as plt
 from scipy.constants import mega
 
@@ -55,4 +57,8 @@ print(water_loss)
 ax4.set_xlabel(time_label)
 ax4.set_ylabel("water loss")
 plt.autoscale(enable=True, axis='y')
+
+for i, fig in enumerate([fig1, fig2, fig3, fig4]):
+    fig.savefig(Path("plots") / fn.with_suffix(f".collision{i}.pdf").name)
+
 plt.show()
