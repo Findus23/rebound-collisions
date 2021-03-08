@@ -22,7 +22,7 @@ before_script:
   - virtualenv venv
   - source venv/bin/activate
   - poetry install
-  - curl -O -u gitlabci:$COLLISION_SECRETS https://lw1.at/s/astro/collision-secrets/save.jsonl
+  - curl -O -u gitlabci:$COLLISION_SECRETS https://lw1.at/s/astro/collision-secrets/rsmc_dataset.jsonl
   - mkdir initcon
   - curl -o initcon/conditions_many.input -u gitlabci:$COLLISION_SECRETS https://lw1.at/s/astro/collision-secrets/conditions_many.input
 
