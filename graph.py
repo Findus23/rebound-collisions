@@ -20,10 +20,11 @@ for merged, originals in ed.tree.get_tree().items():
     for parent in originals["parents"]:
         meta: CollisionMeta = originals["meta"]
         water_ret = meta.water_retention
-        mass_ret = meta.mass_retention
+        mantle_ret = meta.mantle_retention
+        core_ret = meta.core_retention
         if first_parent:
 
-            label = f"{water_ret:.2f}/{mass_ret:.2f}"
+            label = f"{water_ret:.2f}/{mantle_ret:.2f}/{core_ret:.2f}"
             first_parent = False
         else:
             label = None
