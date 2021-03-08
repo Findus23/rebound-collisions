@@ -18,7 +18,6 @@ from utils import unique_hash, filename_from_argv, innermost_period, total_momen
     third_kepler_law, solar_radius, git_hash
 
 MIN_TIMESTEP_PER_ORBIT = 20
-TWO_LAYERS = True
 PERFECT_MERGING = False
 INITCON_FILE = Path("initcon/conditions_many.input")
 
@@ -90,8 +89,6 @@ def main(fn: Path, testrun=False):
                     print("adding rest to mmf")
                     mmf += diff
                 assert cmf + mmf + wmf - 1 <= 1e-10
-                if TWO_LAYERS:
-                    cmf = 0
                 if i > num_embryos + 3:
                     object_type = "planetesimal"
                 else:
