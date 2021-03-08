@@ -1,6 +1,6 @@
 from copy import copy
 from pprint import pprint
-from typing import Tuple
+from typing import Tuple, Optional
 
 import numpy as np
 from numpy import linalg, sqrt
@@ -9,12 +9,15 @@ from rebound.simulation import POINTER_REB_SIM, reb_collision
 from scipy.constants import astronomical_unit, G
 
 from extradata import ExtraData, ParticleData, CollisionMeta, Input
-from merge_interpolation import interpolate
+from merge_interpolation import Interpolation
 from radius_utils import PlanetaryRadius
 from utils import unique_hash, clamp
 
+interpolation: Optional[Interpolation] = None  # global rbf cache
+
 
 def get_mass_fractions(input_data: Input) -> Tuple[float, float, float, CollisionMeta]:
+    global interpolation
     print("v_esc", input_data.escape_velocity)
     print("v_orig,v_si", input_data.velocity_original, input_data.velocity_si)
     print("v/v_esc", input_data.velocity_esc)
@@ -29,8 +32,10 @@ def get_mass_fractions(input_data: Input) -> Tuple[float, float, float, Collisio
     data.projectile_mass = clamp(data.projectile_mass, 2 * m_ceres, 2 * m_earth)
     data.gamma = clamp(data.gamma, 1 / 10, 1)
 
+    if not interpolation:
+        interpolation = Interpolation()
     water_retention, mantle_retention, core_retention = \
-        interpolate(data.alpha, data.velocity_esc, data.projectile_mass, data.gamma)
+        interpolation.interpolate(data.alpha, data.velocity_esc, data.projectile_mass, data.gamma)
 
     metadata = CollisionMeta()
     metadata.interpolation_input = [data.alpha, data.velocity_esc, data.projectile_mass, data.gamma]
