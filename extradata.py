@@ -11,6 +11,7 @@ from scipy.constants import astronomical_unit, year
 @dataclass
 class ParticleData:
     water_mass_fraction: float
+    core_mass_fraction: float
     type: str
     escaped: float = None
     collided_with_sun: float = None
@@ -19,6 +20,10 @@ class ParticleData:
     @property
     def water_mass(self) -> float:
         return self.total_mass * self.water_mass_fraction
+
+    @property
+    def mantle_mass_fraction(self) -> float:
+        return 1 - self.core_mass_fraction - self.water_mass_fraction
 
 
 @dataclass
@@ -47,9 +52,11 @@ class CollisionMeta:
     collision_radii: Tuple[float, float] = None
     interpolation_input: List[float] = None
     raw_water_retention: float = None
-    raw_mass_retention: float = None
+    raw_mantle_retention: float = None
+    raw_core_retention: float = None
     water_retention: float = None
-    mass_retention: float = None
+    mantle_retention: float = None
+    core_retention: float = None
     total_mass: float = None
     final_wmf: float = None
     final_radius: float = None

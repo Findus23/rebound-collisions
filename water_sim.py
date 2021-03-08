@@ -13,11 +13,12 @@ from scipy.constants import astronomical_unit, mega, year
 
 from extradata import ExtraData, ParticleData
 from merge import merge_particles
-from radius_utils import radius
+from radius_utils import PlanetaryRadius
 from utils import unique_hash, filename_from_argv, innermost_period, total_momentum, process_friendlyness, total_mass, \
     third_kepler_law, solar_radius, git_hash
 
 MIN_TIMESTEP_PER_ORBIT = 20
+TWO_LAYERS = True
 PERFECT_MERGING = False
 INITCON_FILE = Path("initcon/conditions_many.input")
 
@@ -81,15 +82,16 @@ def main(fn: Path, testrun=False):
             columns = list(map(float, line.split()))
             hash = unique_hash(extradata)
             if len(columns) > 7:
-                # print(columns[7:])
                 cmf, mmf, wmf = columns[7:]
                 total_fractions = cmf + mmf + wmf
                 if total_fractions != 1:
                     diff = 1 - total_fractions
                     print(f"fractions don't add up by {diff}")
-                    print("adding rest to cmf")
-                    cmf += diff
+                    print("adding rest to mmf")
+                    mmf += diff
                 assert cmf + mmf + wmf - 1 <= 1e-10
+                if TWO_LAYERS:
+                    cmf = 0
                 if i > num_embryos + 3:
                     object_type = "planetesimal"
                 else:
@@ -103,6 +105,7 @@ def main(fn: Path, testrun=False):
                     object_type = "gas giant"
             extradata.pdata[hash.value] = ParticleData(
                 water_mass_fraction=wmf,
+                core_mass_fraction=cmf,
                 type=object_type,
                 total_mass=columns[0]
             )
@@ -116,7 +119,7 @@ def main(fn: Path, testrun=False):
                     Omega=columns[5], M=columns[6],
                     simulation=sim,
                     hash=hash,
-                    r=radius(columns[0], wmf) / astronomical_unit
+                    r=PlanetaryRadius(columns[0], wmf,cmf).total_radius / astronomical_unit
                 )
             sim.add(part)
             i += 1

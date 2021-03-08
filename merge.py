@@ -1,6 +1,4 @@
-import sys
 from copy import copy
-from pathlib import Path
 from pprint import pprint
 from typing import Tuple
 
@@ -11,40 +9,12 @@ from rebound.simulation import POINTER_REB_SIM, reb_collision
 from scipy.constants import astronomical_unit, G
 
 from extradata import ExtraData, ParticleData, CollisionMeta, Input
-from radius_utils import radius
+from merge_interpolation import interpolate
+from radius_utils import PlanetaryRadius
 from utils import unique_hash, clamp
 
-sys.path.append("./bac")
 
-from bac.simulation_list import SimulationList
-from bac.CustomScaler import CustomScaler
-from bac.interpolators.rbf import RbfInterpolator
-
-simulations = SimulationList.jsonlines_load(Path("./save.jsonl"))
-
-scaler = CustomScaler()
-scaler.fit(simulations.X)
-
-scaled_data = scaler.transform_data(simulations.X)
-water_interpolator = RbfInterpolator(scaled_data, simulations.Y_water)
-mass_interpolator = RbfInterpolator(scaled_data, simulations.Y_mass)
-
-
-def interpolate(alpha, velocity, projectile_mass, gamma):
-    hard_coded_water_mass_fraction = 0.15  # workaround to get proper results for water poor collisions
-    testinput = [alpha, velocity, projectile_mass, gamma,
-                 hard_coded_water_mass_fraction, hard_coded_water_mass_fraction]
-
-    print("# alpha velocity projectile_mass gamma target_water_fraction projectile_water_fraction\n")
-    print(" ".join(map(str, testinput)))
-
-    scaled_input = list(scaler.transform_parameters(testinput))
-    water_retention = water_interpolator.interpolate(*scaled_input)
-    mass_retention = mass_interpolator.interpolate(*scaled_input)
-    return float(water_retention), float(mass_retention)
-
-
-def get_mass_fractions(input_data: Input) -> Tuple[float, float, CollisionMeta]:
+def get_mass_fractions(input_data: Input) -> Tuple[float, float, float, CollisionMeta]:
     print("v_esc", input_data.escape_velocity)
     print("v_orig,v_si", input_data.velocity_original, input_data.velocity_si)
     print("v/v_esc", input_data.velocity_esc)
@@ -59,22 +29,26 @@ def get_mass_fractions(input_data: Input) -> Tuple[float, float, CollisionMeta]:
     data.projectile_mass = clamp(data.projectile_mass, 2 * m_ceres, 2 * m_earth)
     data.gamma = clamp(data.gamma, 1 / 10, 1)
 
-    water_retention, mass_retention = interpolate(data.alpha, data.velocity_esc, data.projectile_mass, data.gamma)
+    water_retention, mantle_retention, core_retention = \
+        interpolate(data.alpha, data.velocity_esc, data.projectile_mass, data.gamma)
 
     metadata = CollisionMeta()
     metadata.interpolation_input = [data.alpha, data.velocity_esc, data.projectile_mass, data.gamma]
     metadata.input = input_data
     metadata.adjusted_input = data
     metadata.raw_water_retention = water_retention
-    metadata.raw_mass_retention = mass_retention
+    metadata.raw_mantle_retention = mantle_retention
+    metadata.raw_core_retention = core_retention
 
     water_retention = clamp(water_retention, 0, 1)
-    mass_retention = clamp(mass_retention, 0, 1)
+    mantle_retention = clamp(mantle_retention, 0, 1)
+    core_retention = clamp(core_retention, 0, 1)
 
     metadata.water_retention = water_retention
-    metadata.mass_retention = mass_retention
+    metadata.mantle_retention = mantle_retention
+    metadata.core_retention = core_retention
 
-    return water_retention, mass_retention, metadata
+    return water_retention, mantle_retention, core_retention, metadata
 
 
 def merge_particles(sim_p: POINTER_REB_SIM, collision: reb_collision, ed: ExtraData):
@@ -110,7 +84,9 @@ def merge_particles(sim_p: POINTER_REB_SIM, collision: reb_collision, ed: ExtraD
           f"with {projectile.hash.value} ({ed.pd(projectile).type})")
 
     projectile_wmf = ed.pd(projectile).water_mass_fraction
+    projectile_cmf = ed.pd(projectile).core_mass_fraction
     target_wmf = ed.pd(target).water_mass_fraction
+    target_cmf = ed.pd(target).core_mass_fraction
 
     # get the velocities, velocity differences and unit vector as numpy arrays
     # all units are in sytem units (so AU/year)
@@ -158,9 +134,14 @@ def merge_particles(sim_p: POINTER_REB_SIM, collision: reb_collision, ed: ExtraD
         projectile_water_fraction=projectile_wmf,
     )
 
-    water_ret, stone_ret, meta = get_mass_fractions(input_data)
-    print("interpolation finished")
-    print(water_ret, stone_ret)
+    if ed.meta.perfect_merging:
+        water_ret = mantle_ret = core_ret = 1
+        meta = CollisionMeta()
+        print("skip interpolation due to perfect merging")
+    else:
+        water_ret, mantle_ret, core_ret, meta = get_mass_fractions(input_data)
+        print("interpolation finished")
+    print(water_ret, mantle_ret, core_ret)
 
     meta.collision_velocities = (v1.tolist(), v2.tolist())
     meta.collision_positions = (target.xyz, projectile.xyz)
@@ -170,22 +151,26 @@ def merge_particles(sim_p: POINTER_REB_SIM, collision: reb_collision, ed: ExtraD
 
     # handle loss of water and core mass
     water_mass = target.m * target_wmf + projectile.m * projectile_wmf
-    stone_mass = target.m + projectile.m - water_mass
+    core_mass = target.m * target_cmf + projectile.m * projectile_cmf
+    mantle_mass = target.m + projectile.m - water_mass - core_mass
 
     water_mass *= water_ret
-    stone_mass *= stone_ret
+    mantle_mass *= mantle_ret
+    core_mass *= core_ret
 
-    total_mass = water_mass + stone_mass
+    total_mass = water_mass + mantle_mass + core_mass
     final_wmf = water_mass / total_mass
+    final_cmf = core_mass / total_mass
     print(final_wmf)
     # create new object preserving momentum
     merged_planet = (target * target.m + projectile * projectile.m) / total_mass
     merged_planet.m = total_mass
     merged_planet.hash = hash
 
-    merged_planet.r = radius(merged_planet.m, final_wmf) / astronomical_unit
+    merged_planet.r = PlanetaryRadius(merged_planet.m, final_wmf, final_cmf).total_radius / astronomical_unit
     ed.pdata[hash.value] = ParticleData(
         water_mass_fraction=final_wmf,
+        core_mass_fraction=final_cmf,
         type=ed.pd(target).type,
         total_mass=total_mass
     )

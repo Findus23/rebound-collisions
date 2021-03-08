@@ -8,7 +8,6 @@ authors = ["Lukas Winkler <git@lw1.at>"]
 python = "^3.7"
 rebound = "^3.16.0"
 matplotlib = "^3.2.1"
-pyqt5 = "^5.14.1"
 ipywidgets = "^7.5.1"
 scipy = "^1.4.1"
 graphviz = "^0.16"
@@ -16,6 +15,7 @@ py-spy = "^0.3.3"
 mypy = "^0.812"
 rebound-stubs = {git = "https://github.com/Findus23/rebound-stubs.git", rev = "main"}
 setproctitle = "^1.2.2"
+"vext.pyqt5" = "^0.7.4"
 
 [tool.poetry.dev-dependencies]
 
