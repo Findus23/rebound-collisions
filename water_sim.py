@@ -15,7 +15,7 @@ from extradata import ExtraData, ParticleData
 from merge import merge_particles
 from radius_utils import PlanetaryRadius
 from utils import unique_hash, filename_from_argv, innermost_period, total_momentum, process_friendlyness, total_mass, \
-    third_kepler_law, solar_radius, git_hash
+    third_kepler_law, solar_radius, git_hash, check_heartbeat_needs_recompile
 
 MIN_TIMESTEP_PER_ORBIT = 20
 PERFECT_MERGING = False
@@ -116,7 +116,7 @@ def main(fn: Path, testrun=False):
                     Omega=columns[5], M=columns[6],
                     simulation=sim,
                     hash=hash,
-                    r=PlanetaryRadius(columns[0], wmf,cmf).total_radius / astronomical_unit
+                    r=PlanetaryRadius(columns[0], wmf, cmf).total_radius / astronomical_unit
                 )
             sim.add(part)
             i += 1
@@ -159,6 +159,7 @@ def main(fn: Path, testrun=False):
         cputimeoffset = extradata.meta.cputime
         walltimeoffset = extradata.meta.walltime
 
+    check_heartbeat_needs_recompile()
     clibheartbeat = cdll.LoadLibrary("heartbeat/heartbeat.so")
     sim.heartbeat = clibheartbeat.heartbeat
     innermost_semimajor_axis = third_kepler_law(

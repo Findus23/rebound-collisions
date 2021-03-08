@@ -158,6 +158,13 @@ def git_hash() -> str:
     return output.stdout.decode()
 
 
+def check_heartbeat_needs_recompile() -> None:
+    library = Path("heartbeat/heartbeat.so")
+    code = library.with_suffix(".c")
+    if code.stat().st_mtime > library.stat().st_mtime:
+        raise RuntimeError("heartbeat.so is out of date. Please recompile it from source.")
+
+
 def process_friendlyness(fn: Path) -> None:
     if socket.gethostname() == "standpc":
         # only handle other computers specially
