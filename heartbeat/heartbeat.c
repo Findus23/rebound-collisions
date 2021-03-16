@@ -36,10 +36,15 @@ void heartbeat(struct reb_simulation *sim) {
                 needs_synchronize = 1;
             } else if (distance_squared < min_distance_from_sun_squared) {
                 printf("remove %u at t=%f (min)\n", p.hash, sim->t);
+                double mass = p.m;
                 reb_remove_by_hash(sim, p.hash, 1);
                 hb_sun_collisions[hb_sun_collision_index].hash = p.hash;
                 hb_sun_collisions[hb_sun_collision_index].time = sim->t;
                 hb_sun_collisions[hb_sun_collision_index].new = 1;
+
+                // add mass of deleted particle to sun
+                struct reb_particle sun = sim->particles[0];
+                sun.m += mass;
 
                 hb_sun_collision_index++;
                 needs_synchronize = 1;
