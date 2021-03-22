@@ -16,11 +16,11 @@ mypy = "^0.812"
 rebound-stubs = {git = "https://github.com/Findus23/rebound-stubs.git", rev = "main"}
 setproctitle = "^1.2.2"
 libconf = "^2.0.1"
-torch = "^1.8.0"
 PyYAML = "^5.4.1"
 
 [tool.poetry.dev-dependencies]
 "vext.pyqt5" = "^0.7.4"
+torch = "^1.8.0"
 vext = {git = "https://github.com/vext-python/vext.git"}
 
 [build-system]
