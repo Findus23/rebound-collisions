@@ -69,6 +69,7 @@ class CollisionMeta:
 
 @dataclass
 class Meta:
+    initcon_file: str = None
     tmax: float = None
     num_savesteps: int = None
     per_savestep: float = None

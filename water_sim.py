@@ -1,12 +1,14 @@
 import re
 import time
 from ctypes import Structure, c_uint32, c_double, c_uint, cdll, c_int
+from dataclasses import dataclass
 from math import radians
 from pathlib import Path
 from shutil import copy
 from sys import argv
 
 import rebound
+import yaml
 from rebound import Simulation, Particle, NoParticles, SimulationArchive
 from rebound.simulation import POINTER_REB_SIM, reb_collision
 from scipy.constants import astronomical_unit, mega, year
@@ -18,8 +20,6 @@ from utils import unique_hash, filename_from_argv, innermost_period, total_momen
     third_kepler_law, solar_radius, git_hash, check_heartbeat_needs_recompile
 
 MIN_TIMESTEP_PER_ORBIT = 20
-PERFECT_MERGING = False
-INITCON_FILE = Path("initcon/conditions_many.input")
 
 abort = False
 
@@ -36,11 +36,20 @@ class hb_event(Structure):
 hb_event_list = hb_event * 500
 
 
+@dataclass
+class Parameters:
+    initcon_file: str
+    perfect_merging: bool
+
+
 def main(fn: Path, testrun=False):
     global abort
     start = time.perf_counter()
 
     if not fn.with_suffix(".bin").exists():
+        with open(fn.with_suffix(".yaml")) as f:
+            parameters = Parameters(**yaml.load(f))
+
         # set up a fresh simulation
         sim = Simulation()
 
@@ -68,9 +77,10 @@ def main(fn: Path, testrun=False):
         extradata.meta.num_savesteps = num_savesteps
         extradata.meta.git_hash = git_hash()
         extradata.meta.git_hash = rebound.__githash__
-        extradata.meta.perfect_merging = PERFECT_MERGING
+        extradata.meta.perfect_merging = parameters.perfect_merging
+        extradata.meta.initcon_file = parameters.initcon_file
 
-        initcon = INITCON_FILE.read_text()
+        initcon = Path(parameters.initcon_file).read_text()
         num_embryos = int(re.search(r"Generated (\d+) minor bodies", initcon, re.MULTILINE).group(1))
         num_planetesimals = int(re.search(r"Generated (\d+) small bodies", initcon, re.MULTILINE).group(1))
         sim.N_active = num_embryos + 3
