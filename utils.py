@@ -169,5 +169,5 @@ def process_friendlyness(fn: Path) -> None:
     if socket.gethostname() == "standpc":
         # only handle other computers specially
         return
-    setproctitle(f"[rebound-watersim] [{fn.stem}] read /home/winklerl23/sim-info.txt for more information")
+    setproctitle(f"[{fn.stem}] [rebound-watersim] read /home/winklerl23/sim-info.txt for more information")
     os.nice(5)
