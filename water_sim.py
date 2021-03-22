@@ -49,7 +49,7 @@ def main(fn: Path, testrun=False):
     if not fn.with_suffix(".bin").exists():
         if not testrun:
             with open(fn.with_suffix(".yaml")) as f:
-                parameters = Parameters(**yaml.load(f))
+                parameters = Parameters(**yaml.safe_load(f))
         else:
             parameters = Parameters(perfect_merging=False, initcon_file="initcon/conditions_many.input")
         # set up a fresh simulation
