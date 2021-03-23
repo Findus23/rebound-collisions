@@ -102,8 +102,9 @@ class CollisionTree:
         for key, data in tmpcopy.items():
             metadata = data["meta"]
             metadata = metadata.__dict__
-            metadata["input"] = metadata["input"].__dict__
-            metadata["adjusted_input"] = metadata["adjusted_input"].__dict__
+            if metadata["input"]:
+                metadata["input"] = metadata["input"].__dict__
+                metadata["adjusted_input"] = metadata["adjusted_input"].__dict__
             data["meta"] = metadata
             savetree[key] = data
         return savetree
@@ -112,8 +113,9 @@ class CollisionTree:
         self._tree = {}
         for key, data in tree.items():
             metadata = data["meta"]
-            metadata["input"] = Input(**metadata["input"])
-            metadata["adjusted_input"] = Input(**metadata["adjusted_input"])
+            if metadata["input"]:
+                metadata["input"] = Input(**metadata["input"])
+                metadata["adjusted_input"] = Input(**metadata["adjusted_input"])
 
             metadata = CollisionMeta(**metadata)
             data["meta"] = metadata

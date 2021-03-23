@@ -16,7 +16,7 @@ from utils import unique_hash, clamp
 interpolation: Optional[Interpolation] = None  # global rbf cache
 
 
-def get_mass_fractions(input_data: Input) -> Tuple[float, float, float, CollisionMeta]:
+def get_mass_fractions(input_data: Input, perfect_merging: bool) -> Tuple[float, float, float, CollisionMeta]:
     global interpolation
     print("v_esc", input_data.escape_velocity)
     print("v_orig,v_si", input_data.velocity_original, input_data.velocity_si)
@@ -32,10 +32,13 @@ def get_mass_fractions(input_data: Input) -> Tuple[float, float, float, Collisio
     data.projectile_mass = clamp(data.projectile_mass, 2 * m_ceres, 2 * m_earth)
     data.gamma = clamp(data.gamma, 1 / 10, 1)
 
-    if not interpolation:
-        interpolation = Interpolation()
-    water_retention, mantle_retention, core_retention = \
-        interpolation.interpolate(data.alpha, data.velocity_esc, data.projectile_mass, data.gamma)
+    if perfect_merging:
+        water_retention = mantle_retention = core_retention = 1
+    else:
+        if not interpolation:
+            interpolation = Interpolation()
+        water_retention, mantle_retention, core_retention = \
+            interpolation.interpolate(data.alpha, data.velocity_esc, data.projectile_mass, data.gamma)
 
     metadata = CollisionMeta()
     metadata.interpolation_input = [data.alpha, data.velocity_esc, data.projectile_mass, data.gamma]
@@ -139,14 +142,7 @@ def merge_particles(sim_p: POINTER_REB_SIM, collision: reb_collision, ed: ExtraD
         projectile_water_fraction=projectile_wmf,
     )
 
-    if ed.meta.perfect_merging:
-        water_ret = mantle_ret = core_ret = 1
-        meta = CollisionMeta()
-        print("skip interpolation due to perfect merging")
-    else:
-        water_ret, mantle_ret, core_ret, meta = get_mass_fractions(input_data)
-        print("interpolation finished")
-    print(water_ret, mantle_ret, core_ret)
+    water_ret, mantle_ret, core_ret, meta = get_mass_fractions(input_data, ed.meta.perfect_merging)
 
     meta.collision_velocities = (v1.tolist(), v2.tolist())
     meta.collision_positions = (target.xyz, projectile.xyz)
