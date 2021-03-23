@@ -124,7 +124,7 @@ def main(fn: Path, testrun=False):
             else:
                 part = Particle(
                     m=columns[0], a=columns[1], e=columns[2],
-                    inc=radians(columns[3]), omega=columns[4],
+                    inc=columns[3], omega=columns[4],
                     Omega=columns[5], M=columns[6],
                     simulation=sim,
                     hash=hash,

@@ -1,6 +1,6 @@
 import argparse
 from collections import namedtuple
-from math import log10
+from math import log10, degrees
 
 import matplotlib
 import matplotlib.animation as animation
@@ -65,9 +65,9 @@ def update_plot(num: int, args: MyProgramArgs, sa: SimulationArchive, ed: ExtraD
     if args.y_axis == "e":
         bla = np.array([a, [p.e for p in sim.particles[1:]]])
     elif args.y_axis == "i":
-        bla = np.array([a, [p.inc for p in sim.particles[1:]]])
+        bla = np.array([a, [degrees(p.inc) for p in sim.particles[1:]]])
     elif args.y_axis == "Omega":
-        bla = np.array([a, [p.Omega for p in sim.particles[1:]]])
+        bla = np.array([a, [degrees(p.Omega) for p in sim.particles[1:]]])
     else:
         raise ValueError("invalid y-axis")
     dots.set_offsets(bla.T)
@@ -104,7 +104,7 @@ def main(args: MyProgramArgs):
         plt.ylim(-0.1, 1)  # e
         plt.ylabel("e")
     elif args.y_axis == "i":
-        plt.ylim(0, 4)  # i
+        plt.ylim(0, 10)  # i
         plt.ylabel("i")
     elif args.y_axis == "Omega":
         plt.ylim(0, 360)  # i
