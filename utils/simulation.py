@@ -1,24 +1,13 @@
-import os
-import socket
-import subprocess
 from ctypes import c_uint32
-from pathlib import Path
 from random import randint
-from sys import argv
-from typing import Tuple, Dict
+from typing import Dict
 
-from matplotlib import pyplot as plt
-from matplotlib.axes import Axes
-from matplotlib.figure import Figure
 from numpy import linalg
-from rebound import Simulation, Orbit, Particle, OrbitPlot
+from rebound import Simulation, Orbit, OrbitPlot, Particle
 from scipy.constants import pi, gravitational_constant
-from setproctitle import setproctitle
 
 from extradata import ExtraData
-
-solar_radius = 6.957e8
-solar_mass = 1.9885e+30
+from utils import solar_mass
 
 
 def random_hash() -> c_uint32:
@@ -76,38 +65,11 @@ def show_orbits(sim: Simulation):
     OrbitPlot(sim, slices=1, color=True)
     plt.show()
 
-
-def clamp(n: float, smallest: float, largest: float) -> float:
-    assert smallest < largest
-    return max(smallest, min(n, largest))
-
-
-def filename_from_argv(argument: str = None) -> Path:
-    if len(argv) < 2:
-        raise ValueError("specify filename")
-    if argument:
-        fn = argument
-    else:
-        fn = argv[1]
-    fn = fn.replace(".bin", "").replace(".meta.json", "")
-    if fn.endswith("."):
-        fn = fn[:-1]
-    return Path(fn.replace(".bin", "").replace(".meta.json", ""))
-
-
-def create_figure() -> Tuple[Figure, Axes]:
-    """
-    helper function for matplotlib OOP interface with proper typing
-    """
-    fig: Figure = plt.figure()
-    ax: Axes = fig.gca()
-    return fig, ax
-
-
 def reorder_particles(sim: Simulation, ed: ExtraData) -> None:
     """
     probably not needed anymore
     """
+    exit()
     particles_by_hash: Dict[int, Particle] = {}
     hashes = []
     suns = []
@@ -151,23 +113,3 @@ def reorder_particles(sim: Simulation, ed: ExtraData) -> None:
     # TODO: double-check meaning
     sim.testparticle_type = 1
     assert sim.N == original_N
-
-
-def git_hash() -> str:
-    output = subprocess.run(["git", "rev-parse", "--verify", "HEAD"], capture_output=True)
-    return output.stdout.decode()
-
-
-def check_heartbeat_needs_recompile() -> None:
-    library = Path("heartbeat/heartbeat.so")
-    code = library.with_suffix(".c")
-    if code.stat().st_mtime > library.stat().st_mtime:
-        raise RuntimeError("heartbeat.so is out of date. Please recompile it from source.")
-
-
-def process_friendlyness(fn: Path) -> None:
-    if socket.gethostname() == "standpc":
-        # only handle other computers specially
-        return
-    setproctitle(f"[{fn.stem}] [rebound-watersim] read /home/winklerl23/sim-info.txt for more information")
-    os.nice(5)
