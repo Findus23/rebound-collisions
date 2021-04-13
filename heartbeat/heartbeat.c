@@ -18,6 +18,13 @@ int hb_sun_collision_index = 0;
 
 int needs_synchronize = 0;
 
+FILE *logfile;
+
+void init_logfile(char *filename) {
+    FILE *f = fopen(filename, "a");
+    logfile = f;
+}
+
 void heartbeat(struct reb_simulation *sim) {
     if ((sim->steps_done % 10) == 0) {
         const struct reb_particle *const particles = sim->particles;
@@ -59,5 +66,8 @@ void heartbeat(struct reb_simulation *sim) {
                 sim->ri_mercurius.recalculate_dcrit_this_timestep = 1;
             }
         }
+    }
+    if ((sim->steps_done % 10000) == 0) { // ~ every 100 years
+        fprintf(logfile, "%f, %f\n", sim->t, reb_tools_energy(sim));
     }
 }

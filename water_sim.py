@@ -1,8 +1,7 @@
 import re
 import time
-from ctypes import Structure, c_uint32, c_double, c_uint, cdll, c_int
+from ctypes import Structure, c_uint32, c_double, c_uint, cdll, c_int, create_string_buffer, c_char_p
 from dataclasses import dataclass
-from math import radians
 from pathlib import Path
 from shutil import copy
 from sys import argv
@@ -173,6 +172,10 @@ def main(fn: Path, testrun=False):
 
     check_heartbeat_needs_recompile()
     clibheartbeat = cdll.LoadLibrary("heartbeat/heartbeat.so")
+    clibheartbeat.init_logfile.argtypes = [c_char_p]
+    logfile = create_string_buffer(128)
+    logfile.value = str(fn.with_suffix(".energylog.csv")).encode()
+    clibheartbeat.init_logfile(logfile)
     sim.heartbeat = clibheartbeat.heartbeat
     innermost_semimajor_axis = third_kepler_law(
         orbital_period=sim.dt * year * MIN_TIMESTEP_PER_ORBIT
