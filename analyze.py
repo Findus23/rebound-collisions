@@ -2,7 +2,7 @@ import matplotlib.pyplot as plt
 from rebound import SimulationArchive, Particle, Simulation
 
 from extradata import ExtraData
-from utils import filename_from_argv, plot_settings
+from utils import filename_from_argv, plot_settings, is_ci
 
 plot_settings()
 
