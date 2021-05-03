@@ -57,6 +57,8 @@ visualisation:
     - poetry run python analyze.py test_simulationrun
     - poetry run python collisionhistory.py test_simulationrun
     - poetry run python collisionstats.py test_simulationrun
+    - poetry run python particle_numbers.py test_simulationrun
+    - poetry run python final_results.py test_simulationrun
 
 graph:
   stage: visualisation
