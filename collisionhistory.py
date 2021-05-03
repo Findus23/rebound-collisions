@@ -4,7 +4,7 @@ from matplotlib.figure import Figure
 from rebound import SimulationArchive, Simulation
 
 from extradata import ExtraData, CollisionMeta
-from utils import filename_from_argv, earth_mass, earth_water_mass, plot_settings
+from utils import filename_from_argv, earth_mass, earth_water_mass, plot_settings, is_ci
 
 plot_settings()
 
@@ -72,5 +72,6 @@ for particle in last_sim.particles:
     twin_ax.set_yscale("log")
     ax_wmfs.axhline(earth_water_mass/earth_mass,linestyle="dotted")
 fig.tight_layout()
-fig.savefig("/home/lukas/tmp/collisionhistory.pdf", transparent=True)
+if not is_ci():
+    fig.savefig("/home/lukas/tmp/collisionhistory.pdf", transparent=True)
 plt.show()

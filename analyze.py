@@ -34,5 +34,6 @@ for name, d in data.items():
 # plt.legend()
 # OrbitPlot(sim, slices=1)
 plt.tight_layout()
-plt.savefig("/home/lukas/tmp/time.pdf", transparent=True)
+if not is_ci():
+    plt.savefig("/home/lukas/tmp/time.pdf", transparent=True)
 plt.show()

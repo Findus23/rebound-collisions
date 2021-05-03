@@ -1,10 +1,11 @@
 import os
+import socket
 import subprocess
 from pathlib import Path
-import socket
 from sys import argv
 
 from setproctitle import setproctitle
+
 
 def filename_from_argv(argument: str = None) -> Path:
     if len(argv) < 2:
@@ -37,3 +38,7 @@ def process_friendlyness(fn: Path) -> None:
         return
     setproctitle(f"[{fn.stem}] [rebound-watersim] read /home/winklerl23/sim-info.txt for more information")
     os.nice(5)
+
+
+def is_ci() -> bool:
+    return "CI" in os.environ
