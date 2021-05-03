@@ -33,7 +33,10 @@ def get_mass_fractions(input_data: Input, perfect_merging: bool) -> Tuple[float,
     data.gamma = clamp(data.gamma, 1 / 10, 1)
 
     if perfect_merging:
-        water_retention = mantle_retention = core_retention = 1
+        water_retention \
+            = mantle_retention \
+            = core_retention \
+            = 1
     else:
         if not interpolation:
             interpolation = Interpolation()
