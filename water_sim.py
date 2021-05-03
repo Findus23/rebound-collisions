@@ -39,7 +39,7 @@ hb_event_list = hb_event * 500
 class Parameters:
     initcon_file: str
     perfect_merging: bool
-    no_merging: bool
+    no_merging: bool = False
 
 
 def main(fn: Path, testrun=False):
