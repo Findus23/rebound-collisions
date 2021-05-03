@@ -11,9 +11,18 @@ from matplotlib.collections import PathCollection
 from matplotlib.colors import Normalize, Colormap
 from matplotlib.text import Text
 from rebound import SimulationArchive, Particle
+from scipy.constants import mega
 
 from extradata import ExtraData, ParticleData
 from utils import filename_from_argv
+
+output_plots = False
+if output_plots:
+    size_factor = 1
+    figsize = None
+else:
+    size_factor = 3
+    figsize = (15, 10)
 
 
 class MyProgramArgs(argparse.Namespace):
@@ -38,8 +47,9 @@ def update_plot(num: int, args: MyProgramArgs, sa: SimulationArchive, ed: ExtraD
         time = 10 ** ((num + log10(50000) / log_timestep) * log_timestep)
     else:
         timestep = ed.meta.current_time / total_frames
+        print(num / total_frames)
         time = num * timestep
-    print(time)
+    print(f"{num / total_frames:.2f}, {time:.0f}")
     sim = sa.getSimulation(t=time)
     if time < 1e3:
         timestr = f"{time:.0f}"
@@ -71,14 +81,15 @@ def update_plot(num: int, args: MyProgramArgs, sa: SimulationArchive, ed: ExtraD
     else:
         raise ValueError("invalid y-axis")
     dots.set_offsets(bla.T)
-    water_fractions = np.array(water_fractions)
-    color_val = (np.log10(water_fractions) + 5) / 5
+    with np.errstate(divide='ignore'):  # allow 0 water (becomes -inf)
+        color_val = (np.log10(water_fractions) + 5) / 5
     colors = cmap(color_val)
     if not mean_mass:
         mean_mass = np.mean(m[3:])
-    dots.set_sizes(3 * m / mean_mass)
+    dots.set_sizes(size_factor * m / mean_mass)
     dots.set_color(colors)
-    # plt.savefig("tmp/" + str(num) + ".pdf",transparent=True)
+    if output_plots:
+        plt.savefig(f"tmp/{num}_{time / mega}.pdf", transparent=True)
     return dots, title
 
 
@@ -88,7 +99,7 @@ def main(args: MyProgramArgs):
     logtime = False
     cmap: Colormap = matplotlib.cm.get_cmap("Blues")
 
-    fig1 = plt.figure(figsize=(15, 10))
+    fig1 = plt.figure(figsize=figsize)
 
     l: PathCollection = plt.scatter([1], [1])
 

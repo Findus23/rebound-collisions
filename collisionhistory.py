@@ -4,7 +4,9 @@ from matplotlib.figure import Figure
 from rebound import SimulationArchive, Simulation
 
 from extradata import ExtraData, CollisionMeta
-from utils import filename_from_argv
+from utils import filename_from_argv, earth_mass, earth_water_mass, plot_settings
+
+plot_settings()
 
 fn = filename_from_argv()
 ed = ExtraData.load(fn)
@@ -15,8 +17,8 @@ print([p.hash.value for p in last_sim.particles])
 print(last_sim.t)
 
 fig: Figure = plt.figure()
-ax_masses: Axes = fig.add_subplot(2,1, 1)
-ax_wmfs: Axes = fig.add_subplot(2,1, 2)
+ax_masses: Axes = fig.add_subplot(2, 1, 1)
+ax_wmfs: Axes = fig.add_subplot(2, 1, 2)
 
 for particle in last_sim.particles:
     if ed.pd(particle).type in ["sun", "gas giant"]:
@@ -37,6 +39,7 @@ for particle in last_sim.particles:
             break
         meta: CollisionMeta = collision["meta"]
         parents = collision["parents"]
+        print("mass:", ed.pdata[hash].total_mass / earth_mass)
         masses.append(ed.pdata[hash].total_mass)
         objects.append(ed.pdata[hash])
         times.append(meta.time)
@@ -57,9 +60,17 @@ for particle in last_sim.particles:
     ax_wmfs.set_ylabel("water mass fraction")
     ax_masses.set_ylabel("masses [kg]")
     for ax in [ax_wmfs, ax_masses]:
+        ax.set_xlim(1e4, ed.meta.current_time)
         ax.set_xlabel("time [yr]")
         ax.set_xscale("log")
         ax.set_yscale("log")
         ax.legend()
+    twin_ax = ax_masses.twinx()
+    mn, mx = ax_masses.get_ylim()
+    twin_ax.set_ylim(mn / earth_mass, mx / earth_mass)
+    twin_ax.set_ylabel('[$M_\\oplus$]')
+    twin_ax.set_yscale("log")
+    ax_wmfs.axhline(earth_water_mass/earth_mass,linestyle="dotted")
 fig.tight_layout()
+fig.savefig("/home/lukas/tmp/collisionhistory.pdf", transparent=True)
 plt.show()

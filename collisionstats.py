@@ -5,7 +5,9 @@ from matplotlib import pyplot as plt
 from scipy.constants import mega
 
 from extradata import ExtraData, CollisionMeta
-from utils import filename_from_argv, create_figure
+from utils import filename_from_argv, create_figure, plot_settings
+
+plot_settings()
 
 dotsize = 1.5
 
@@ -36,7 +38,7 @@ ax4.set_yscale("log")
 
 ax4.set_xlabel(time_label)
 ax4.set_ylabel("water loss")
-
+sum = 0
 for file in argv[1:]:
     fn = filename_from_argv(file)
     print(fn)
@@ -51,6 +53,7 @@ for file in argv[1:]:
     times = []
 
     for collision in ed.tree.get_tree().values():
+        sum += 1
         meta: CollisionMeta = collision["meta"]
         vs.append(meta.input.velocity_esc)
         angles.append(meta.input.alpha)
@@ -60,14 +63,15 @@ for file in argv[1:]:
         water_loss.append(loss)
         times.append(meta.time / mega)
 
-    ax1.scatter(angles, vs,s=dotsize)
-    ax2.scatter(times, angles,s=dotsize)
-    ax3.scatter(times, vs,s=dotsize)
-    ax4.scatter(times, water_loss,s=dotsize)
+    ax1.scatter(angles, vs, s=dotsize)
+    ax2.scatter(times, angles, s=dotsize)
+    ax3.scatter(times, vs, s=dotsize)
+    ax4.scatter(times, water_loss, s=dotsize)
 
 ax4.autoscale(enable=True, axis='y')
 
 for i, fig in enumerate([fig1, fig2, fig3, fig4]):
-    fig.savefig(Path("plots") / fn.with_suffix(f".collision{i}.pdf").name)
-
+    fig.tight_layout()
+    fig.savefig(Path("plots") / fn.with_suffix(f".collision{i}.pdf").name, transparent=True)
+print(sum)
 plt.show()

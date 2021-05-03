@@ -2,7 +2,9 @@ import matplotlib.pyplot as plt
 from rebound import SimulationArchive, Particle, Simulation
 
 from extradata import ExtraData
-from utils import filename_from_argv
+from utils import filename_from_argv, plot_settings
+
+plot_settings()
 
 fn = filename_from_argv()
 sa = SimulationArchive(str(fn.with_suffix(".bin")))
@@ -28,7 +30,9 @@ for name, d in data.items():
     if False:
         plt.scatter(times, values, label=name, s=.9)
     else:
-        plt.plot(times, values, label=name)
+        plt.plot(times, values, label=name, linewidth=0.6)
 # plt.legend()
 # OrbitPlot(sim, slices=1)
+plt.tight_layout()
+plt.savefig("/home/lukas/tmp/time.pdf", transparent=True)
 plt.show()

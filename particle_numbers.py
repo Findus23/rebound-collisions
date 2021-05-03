@@ -6,7 +6,9 @@ from matplotlib.figure import Figure
 from rebound import SimulationArchive, Simulation
 
 from extradata import ExtraData
-from utils import filename_from_argv
+from utils import filename_from_argv, plot_settings
+
+plot_settings()
 
 fig: Figure = plt.figure()
 ax: Axes = plt.gca()
@@ -29,11 +31,13 @@ for file in argv[1:]:
         N = num_embryos + num_planetesimals
         Ns.append(N)
         ts.append(sim.t)
-
-    ax.step(ts, Ns, label=fn, where="post")
+    perfect_merging = "pm" in str(fn)
+    ax.step(ts, Ns, label=fn, where="post", linestyle="dashed" if perfect_merging else "solid",linewidth=0.7)
 ax.set_xlabel("time [yr]")
 ax.set_ylabel("number of objects")
 # ax.set_xscale("log")
 
 plt.legend()
+plt.tight_layout()
+plt.savefig("/home/lukas/tmp/particle_numbers.pdf", transparent=True)
 plt.show()

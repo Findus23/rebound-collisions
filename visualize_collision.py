@@ -5,10 +5,12 @@ from matplotlib.patches import FancyArrowPatch
 from mpl_toolkits.mplot3d import Axes3D, proj3d
 
 from extradata import ExtraData, CollisionMeta
-from utils import filename_from_argv
+from utils import filename_from_argv, plot_settings
 
 fn = filename_from_argv()
 ed = ExtraData.load(fn)
+
+plot_settings()
 
 
 def get_circle(dx, dy, dz, r):
@@ -64,5 +66,5 @@ for collision in ed.tree.get_tree().values():
     ax.set_zlim3d((zmin, zmin - diff))
     # ax.set_ylim3d(XYZlim)
     # ax.set_zlim3d(XYZlim * 3/4)
-
+    plt.savefig("/home/lukas/tmp/3d.pdf")
     plt.show()

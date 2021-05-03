@@ -12,3 +12,7 @@ def create_figure() -> Tuple[Figure, Axes]:
     fig: Figure = plt.figure()
     ax: Axes = fig.gca()
     return fig, ax
+
+
+def plot_settings() -> None:
+    plt.style.use("dark_background")
