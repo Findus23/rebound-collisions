@@ -39,6 +39,7 @@ hb_event_list = hb_event * 500
 class Parameters:
     initcon_file: str
     perfect_merging: bool
+    no_merging: bool
 
 
 def main(fn: Path, testrun=False):
@@ -59,10 +60,10 @@ def main(fn: Path, testrun=False):
         # boxsize = 100
         # sim.configure_box(boxsize)
         sim.integrator = "mercurius"
-        # sim.collision = 'line'
         sim.dt = 1e-2
         sim.ri_ias15.min_dt = 0.0001 / 365
-        sim.collision = "direct"
+        if not parameters.no_merging:
+            sim.collision = "direct"
         sim.ri_mercurius.hillfac = 3.
         sim.testparticle_type = 1
         tmax = 200 * mega
@@ -80,6 +81,7 @@ def main(fn: Path, testrun=False):
         extradata.meta.git_hash = rebound.__githash__
         extradata.meta.perfect_merging = parameters.perfect_merging
         extradata.meta.initcon_file = parameters.initcon_file
+        extradata.meta.no_merging = parameters.no_merging
 
         initcon = Path(parameters.initcon_file).read_text()
         num_embryos = int(re.search(r"Generated (\d+) minor bodies", initcon, re.MULTILINE).group(1))
