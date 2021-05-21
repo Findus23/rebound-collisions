@@ -10,8 +10,7 @@ from scipy.constants import astronomical_unit, G
 
 from extradata import ExtraData, ParticleData, CollisionMeta, Input
 from merge_interpolation import Interpolation
-from radius_utils import PlanetaryRadius
-from utils import unique_hash, clamp
+from utils import unique_hash, clamp, PlanetaryRadius
 
 interpolation: Optional[Interpolation] = None  # global rbf cache
 
