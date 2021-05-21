@@ -14,9 +14,8 @@ from scipy.constants import astronomical_unit, mega, year
 
 from extradata import ExtraData, ParticleData
 from merge import merge_particles
-from radius_utils import PlanetaryRadius
 from utils import unique_hash, filename_from_argv, innermost_period, total_momentum, process_friendlyness, total_mass, \
-    third_kepler_law, solar_radius, git_hash, check_heartbeat_needs_recompile
+    third_kepler_law, solar_radius, git_hash, check_heartbeat_needs_recompile, PlanetaryRadius
 
 MIN_TIMESTEP_PER_ORBIT = 20
 
@@ -51,7 +50,7 @@ def main(fn: Path, testrun=False):
             with open(fn.with_suffix(".yaml")) as f:
                 parameters = Parameters(**yaml.safe_load(f))
         else:
-            parameters = Parameters(perfect_merging=True, initcon_file="initcon/conditions_many.input")
+            parameters = Parameters(perfect_merging=False, initcon_file="initcon/conditions_many.input")
         # set up a fresh simulation
         sim = Simulation()
 
@@ -123,9 +122,13 @@ def main(fn: Path, testrun=False):
             if columns[1] == 0:  # that should not be needed, but nevertheless is
                 part = Particle(m=columns[0], hash=hash, r=solar_radius / astronomical_unit)
             else:
+                inc = columns[3]
+                if testrun:
+                    # force particles to collide early when running tests
+                    inc /= 1000
                 part = Particle(
                     m=columns[0], a=columns[1], e=columns[2],
-                    inc=columns[3], omega=columns[4],
+                    inc=inc, omega=columns[4],
                     Omega=columns[5], M=columns[6],
                     simulation=sim,
                     hash=hash,
