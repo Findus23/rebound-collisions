@@ -37,7 +37,7 @@ hb_event_list = hb_event * 500
 @dataclass
 class Parameters:
     initcon_file: str
-    perfect_merging: bool
+    massloss_method: str
     no_merging: bool = False
 
 
@@ -50,7 +50,7 @@ def main(fn: Path, testrun=False):
             with open(fn.with_suffix(".yaml")) as f:
                 parameters = Parameters(**yaml.safe_load(f))
         else:
-            parameters = Parameters(perfect_merging=False, initcon_file="initcon/conditions_many.input")
+            parameters = Parameters(massloss_method="rbf", initcon_file="initcon/conditions_many.input")
         # set up a fresh simulation
         sim = Simulation()
 
@@ -78,7 +78,7 @@ def main(fn: Path, testrun=False):
         extradata.meta.num_savesteps = num_savesteps
         extradata.meta.git_hash = git_hash()
         extradata.meta.git_hash = rebound.__githash__
-        extradata.meta.perfect_merging = parameters.perfect_merging
+        extradata.meta.massloss_method = parameters.massloss_method
         extradata.meta.initcon_file = parameters.initcon_file
         extradata.meta.no_merging = parameters.no_merging
 

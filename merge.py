@@ -9,14 +9,15 @@ from rebound.simulation import POINTER_REB_SIM, reb_collision
 from scipy.constants import astronomical_unit, G
 
 from extradata import ExtraData, ParticleData, CollisionMeta, Input
-from merge_interpolation import Interpolation
+from massloss import RbfMassloss, Massloss, LeiZhouMassloss
+from massloss.perfect_merging import PerfectMerging
 from utils import unique_hash, clamp, PlanetaryRadius
 
-interpolation: Optional[Interpolation] = None  # global rbf cache
+massloss_estimator: Optional[Massloss] = None  # global waterloss estimator cache
 
 
-def get_mass_fractions(input_data: Input, perfect_merging: bool) -> Tuple[float, float, float, CollisionMeta]:
-    global interpolation
+def get_mass_fractions(input_data: Input) -> Tuple[float, float, float, CollisionMeta]:
+    global massloss_estimator
     print("v_esc", input_data.escape_velocity)
     print("v_orig,v_si", input_data.velocity_original, input_data.velocity_si)
     print("v/v_esc", input_data.velocity_esc)
@@ -31,16 +32,8 @@ def get_mass_fractions(input_data: Input, perfect_merging: bool) -> Tuple[float,
     data.projectile_mass = clamp(data.projectile_mass, 2 * m_ceres, 2 * m_earth)
     data.gamma = clamp(data.gamma, 1 / 10, 1)
 
-    if perfect_merging:
-        water_retention \
-            = mantle_retention \
-            = core_retention \
-            = 1
-    else:
-        if not interpolation:
-            interpolation = Interpolation()
-        water_retention, mantle_retention, core_retention = \
-            interpolation.interpolate(data.alpha, data.velocity_esc, data.projectile_mass, data.gamma)
+    water_retention, mantle_retention, core_retention = \
+        massloss_estimator.estimate(data.alpha, data.velocity_esc, data.projectile_mass, data.gamma, )
 
     metadata = CollisionMeta()
     metadata.interpolation_input = [data.alpha, data.velocity_esc, data.projectile_mass, data.gamma]
@@ -62,6 +55,7 @@ def get_mass_fractions(input_data: Input, perfect_merging: bool) -> Tuple[float,
 
 
 def merge_particles(sim_p: POINTER_REB_SIM, collision: reb_collision, ed: ExtraData):
+    global massloss_estimator
     print("--------------")
     print("colliding")
     sim: Simulation = sim_p.contents
@@ -131,6 +125,20 @@ def merge_particles(sim_p: POINTER_REB_SIM, collision: reb_collision, ed: ExtraD
 
     print("interpolating")
 
+    if not massloss_estimator:
+        methods = [RbfMassloss, LeiZhouMassloss, PerfectMerging]
+        per_name = {}
+        for method in methods:
+            per_name[method.name] = method
+        try:
+            estimator_class = per_name[ed.meta.massloss_method]
+        except KeyError:
+            print("invalid mass loss estimation method")
+            print("please use one of these:")
+            print(per_name)
+            raise
+        massloss_estimator = estimator_class()
+
     # let interpolation calculate water and mass retention fraction
     # meta is just a bunch of intermediate results that will be logged to help
     # understand the collisions better
@@ -144,7 +152,8 @@ def merge_particles(sim_p: POINTER_REB_SIM, collision: reb_collision, ed: ExtraD
         projectile_water_fraction=projectile_wmf,
     )
 
-    water_ret, mantle_ret, core_ret, meta = get_mass_fractions(input_data, ed.meta.perfect_merging)
+    water_ret, mantle_ret, core_ret, meta = get_mass_fractions(input_data)
+    print("mass retentions:", water_ret, mantle_ret, core_ret)
 
     meta.collision_velocities = (v1.tolist(), v2.tolist())
     meta.collision_positions = (target.xyz, projectile.xyz)

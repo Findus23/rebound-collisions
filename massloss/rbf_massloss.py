@@ -5,8 +5,12 @@ from typing import Tuple
 import numpy as np
 from scipy.interpolate import Rbf
 
+from massloss import Massloss
 
-class Interpolation:
+
+class RbfMassloss(Massloss):
+    name = "rbf"
+
     def __init__(self):
         sys.path.append("./bac")
 
@@ -30,7 +34,7 @@ class Interpolation:
         self.interpolator = Rbf(*scaled_data.T, output_data.T, function="linear", mode="N-D")
         print("finished loading interpolation dataset")
 
-    def interpolate(self, alpha, velocity, projectile_mass, gamma) -> Tuple[float, float, float]:
+    def estimate(self, alpha, velocity, projectile_mass, gamma) -> Tuple[float, float, float]:
         hard_coded_water_mass_fraction = 1e-5  # workaround to get proper results for water poor collisions
         testinput = [alpha, velocity, projectile_mass, gamma,
                      hard_coded_water_mass_fraction, hard_coded_water_mass_fraction]
@@ -45,5 +49,5 @@ class Interpolation:
 
 
 if __name__ == '__main__':
-    inter = Interpolation()
-    print(inter.interpolate(32, 3, 7.6e22, 0.16))
+    inter = RbfMassloss()
+    print(inter.estimate(32, 3, 7.6e22, 0.16, ))
