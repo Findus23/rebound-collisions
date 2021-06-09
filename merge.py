@@ -9,7 +9,7 @@ from rebound.simulation import POINTER_REB_SIM, reb_collision
 from scipy.constants import astronomical_unit, G
 
 from extradata import ExtraData, ParticleData, CollisionMeta, Input
-from massloss import RbfMassloss, Massloss, LeiZhouMassloss
+from massloss import RbfMassloss, Massloss, LeiZhouMassloss, SimpleNNMassloss
 from massloss.perfect_merging import PerfectMerging
 from utils import unique_hash, clamp, PlanetaryRadius
 
@@ -126,7 +126,7 @@ def merge_particles(sim_p: POINTER_REB_SIM, collision: reb_collision, ed: ExtraD
     print("interpolating")
 
     if not massloss_estimator:
-        methods = [RbfMassloss, LeiZhouMassloss, PerfectMerging]
+        methods = [RbfMassloss, LeiZhouMassloss, PerfectMerging, SimpleNNMassloss]
         per_name = {}
         for method in methods:
             per_name[method.name] = method
