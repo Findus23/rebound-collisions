@@ -15,7 +15,7 @@ from scipy.constants import astronomical_unit, mega, year
 from extradata import ExtraData, ParticleData
 from merge import merge_particles
 from utils import unique_hash, filename_from_argv, innermost_period, total_momentum, process_friendlyness, total_mass, \
-    third_kepler_law, solar_radius, git_hash, check_heartbeat_needs_recompile, PlanetaryRadius
+    third_kepler_law, solar_radius, git_hash, check_heartbeat_needs_recompile, PlanetaryRadius, set_process_title
 
 MIN_TIMESTEP_PER_ORBIT = 20
 
@@ -213,6 +213,7 @@ def main(fn: Path, testrun=False):
     while t <= tmax:
         print()
         print(f"{t / tmax * 100:.2f}%")
+        set_process_title(fn, t / tmax, sim.N)
         try:
             print(f"integrating until {t}")
             sim.integrate(t, exact_finish_time=0)

@@ -36,8 +36,12 @@ def process_friendlyness(fn: Path) -> None:
     if socket.gethostname() == "standpc":
         # only handle other computers specially
         return
-    setproctitle(f"[{fn.stem}] [rebound-watersim] read /home/winklerl23/sim-info.txt for more information")
+    set_process_title(fn, 0, 0)
     os.nice(5)
+
+
+def set_process_title(fn: Path, progress: float, bodies: int) -> None:
+    setproctitle(f"watersim [{fn.stem}] {progress * 100:.2f}% finished, {bodies} bodies")
 
 
 def is_ci() -> bool:
