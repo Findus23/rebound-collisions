@@ -55,7 +55,10 @@ void heartbeat(struct reb_simulation *sim) {
                 hb_escape_index++;
                 needs_synchronize = 1;
             } else if (distance_squared < min_distance_from_sun_squared ||
-                       perihelion_dist * perihelion_dist < min_distance_from_sun_squared) {
+                       (tmp_orbit.e < 1.0 &&
+                        perihelion_dist * perihelion_dist <
+                        min_distance_from_sun_squared)
+                    ) {
                 printf("remove %u at t=%f (min)\n", p.hash, sim->t);
                 double mass = p.m;
                 reb_remove_by_hash(sim, p.hash, 1);
@@ -69,7 +72,7 @@ void heartbeat(struct reb_simulation *sim) {
 
                 hb_sun_collision_index++;
                 needs_synchronize = 1;
-            } else if (perihelion_dist > 11.) {
+            } else if (tmp_orbit.e < 1.0 && perihelion_dist > 11.) {
                 // remove bodies if their perihel distance is above 11AU
                 printf("remove %u at t=%f (max)\n", p.hash, sim->t);
                 reb_remove_by_hash(sim, p.hash, 1);
