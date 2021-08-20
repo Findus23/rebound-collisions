@@ -188,7 +188,7 @@ def main(fn: Path, testrun=False):
     print(f"innermost semimajor axis is {innermost_semimajor_axis}")
 
     c_double.in_dll(clibheartbeat, "min_distance_from_sun_squared").value = innermost_semimajor_axis ** 2
-    c_double.in_dll(clibheartbeat, "max_distance_from_sun_squared").value = 30 ** 2
+    c_double.in_dll(clibheartbeat, "max_distance_from_sun_squared").value = 150 ** 2
 
     assert sim.dt < innermost_period(sim) / MIN_TIMESTEP_PER_ORBIT
 
@@ -230,6 +230,7 @@ def main(fn: Path, testrun=False):
         assert sim.dt < innermost_period(sim) / MIN_TIMESTEP_PER_ORBIT
 
         escape: hb_event
+        wide_orbit: hb_event
         sun_collision: hb_event
         for escape in hb_event_list.in_dll(clibheartbeat, "hb_escapes"):
             if not escape.new:
@@ -244,7 +245,13 @@ def main(fn: Path, testrun=False):
             print("sun collision:", sun_collision.time, sun_collision.hash)
             extradata.pdata[sun_collision.hash].collided_with_sun = sun_collision.time
             sun_collision.new = 0
-        print(c_int.in_dll(clibheartbeat, "hb_sun_collision_index").value, "found")
+        c_int.in_dll(clibheartbeat, "hb_sun_collision_index").value = 0
+        for wide_orbit in hb_event_list.in_dll(clibheartbeat, "hb_wide_orbits"):
+            if not wide_orbit.new:
+                continue
+            print("wide orbit:", wide_orbit.time, wide_orbit.hash)
+            extradata.pdata[wide_orbit.hash].wide_orbit = wide_orbit.time
+            wide_orbit.new = 0
         c_int.in_dll(clibheartbeat, "hb_sun_collision_index").value = 0
         sim.simulationarchive_snapshot(str(fn.with_suffix(".bin")))
         extradata.meta.walltime = time.perf_counter() - start + walltimeoffset
