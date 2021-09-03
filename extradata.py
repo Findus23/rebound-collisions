@@ -15,6 +15,7 @@ class ParticleData:
     type: str
     escaped: float = None
     collided_with_sun: float = None
+    wide_orbit: float = None
     total_mass: float = None
 
     @property
@@ -182,6 +183,8 @@ class ExtraData:
         with base_filename.with_suffix(".history.json").open() as f:
             history = json.load(f)
         self = cls()
+        if "perfect_merging" in data["meta"]:
+            del data["meta"]["perfect_merging"]
         self.meta = Meta(**data["meta"])
         self.history = History()
         self.history.load(history)
