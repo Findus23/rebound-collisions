@@ -193,7 +193,7 @@ def main(fn: Path, testrun=False):
     sim.heartbeat = clibheartbeat.heartbeat
     innermost_semimajor_axis = third_kepler_law(
         orbital_period=sim.dt * year * MIN_TIMESTEP_PER_ORBIT
-    ) / astronomical_unit
+    ) / astronomical_unit * 1.1
     print(f"innermost semimajor axis is {innermost_semimajor_axis}")
 
     c_double.in_dll(clibheartbeat, "min_distance_from_sun_squared").value = innermost_semimajor_axis ** 2
