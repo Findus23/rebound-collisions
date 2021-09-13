@@ -12,9 +12,9 @@ for num in range(1, 11):
         initcon_file=f"initcon/conditions_final{num}.input"
     )
     print(yaml.dump(param.__dict__))
-    outfile = outdir / f"{basename}{num}"
+    outfile = outdir / f"{basename}{num}.yaml"
     if outfile.exists():
         print("file exists", outfile)
         continue
-    with outfile.open("w"):
-        yaml.dump(param.__dict__)
+    with outfile.open("w") as f:
+        yaml.dump(param.__dict__, f)
