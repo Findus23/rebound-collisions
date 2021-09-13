@@ -5,6 +5,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from shutil import copy
 from sys import argv
+from typing import Tuple
 
 import rebound
 import yaml
@@ -39,6 +40,66 @@ class Parameters:
     initcon_file: str
     massloss_method: str
     no_merging: bool = False
+
+
+def add_particles_from_conditions_file(sim: Simulation, ed: ExtraData,
+                                       input_file: str, testrun=False) -> Tuple[int, int]:
+    initcon = Path(input_file).read_text()
+    num_embryos = int(re.search(r"Generated (\d+) minor bodies", initcon, re.MULTILINE).group(1))
+    num_planetesimals = int(re.search(r"Generated (\d+) small bodies", initcon, re.MULTILINE).group(1))
+    sim.N_active = num_embryos + 3
+    i = 1
+    for line in initcon.split("\n"):
+        if line.startswith("#") or line.startswith("ERROR") or line == "\n" or not line:
+            continue
+        columns = list(map(float, line.split()))
+        hash = unique_hash(ed)
+        if len(columns) > 7:
+            cmf, mmf, wmf = columns[7:]
+            total_fractions = cmf + mmf + wmf
+            if total_fractions != 1:
+                diff = 1 - total_fractions
+                print(f"fractions don't add up by {diff}")
+                print("adding rest to mmf")
+                mmf += diff
+            assert cmf + mmf + wmf - 1 <= 1e-10
+            if i > num_embryos + 3:
+                object_type = "planetesimal"
+            else:
+                object_type = "embryo"
+        else:
+            wmf = mmf = 0
+            cmf = 1
+            if columns[1] == 0:
+                object_type = "sun"
+            else:
+                object_type = "gas giant"
+        ed.pdata[hash.value] = ParticleData(
+            water_mass_fraction=wmf,
+            core_mass_fraction=cmf,
+            type=object_type,
+            total_mass=columns[0]
+        )
+
+        if columns[1] == 0:  # that should not be needed, but nevertheless is
+            part = Particle(m=columns[0], hash=hash, r=solar_radius / astronomical_unit)
+        else:
+            inc = columns[3]
+            if testrun:
+                # force particles to collide early when running tests
+                inc /= 1000
+            part = Particle(
+                m=columns[0], a=columns[1], e=columns[2],
+                inc=inc, omega=columns[4],
+                Omega=columns[5], M=columns[6],
+                simulation=sim,
+                hash=hash,
+                r=PlanetaryRadius(columns[0], wmf, cmf).total_radius / astronomical_unit
+            )
+        sim.add(part)
+        i += 1
+    assert sim.N == num_planetesimals + num_embryos + 3
+    return num_planetesimals, num_embryos
 
 
 def main(fn: Path, testrun=False):
@@ -82,61 +143,9 @@ def main(fn: Path, testrun=False):
         extradata.meta.initcon_file = parameters.initcon_file
         extradata.meta.no_merging = parameters.no_merging
 
-        initcon = Path(parameters.initcon_file).read_text()
-        num_embryos = int(re.search(r"Generated (\d+) minor bodies", initcon, re.MULTILINE).group(1))
-        num_planetesimals = int(re.search(r"Generated (\d+) small bodies", initcon, re.MULTILINE).group(1))
-        sim.N_active = num_embryos + 3
-        i = 1
-        for line in initcon.split("\n"):
-            if line.startswith("#") or line.startswith("ERROR") or line == "\n" or not line:
-                continue
-            columns = list(map(float, line.split()))
-            hash = unique_hash(extradata)
-            if len(columns) > 7:
-                cmf, mmf, wmf = columns[7:]
-                total_fractions = cmf + mmf + wmf
-                if total_fractions != 1:
-                    diff = 1 - total_fractions
-                    print(f"fractions don't add up by {diff}")
-                    print("adding rest to mmf")
-                    mmf += diff
-                assert cmf + mmf + wmf - 1 <= 1e-10
-                if i > num_embryos + 3:
-                    object_type = "planetesimal"
-                else:
-                    object_type = "embryo"
-            else:
-                wmf = mmf = 0
-                cmf = 1
-                if columns[1] == 0:
-                    object_type = "sun"
-                else:
-                    object_type = "gas giant"
-            extradata.pdata[hash.value] = ParticleData(
-                water_mass_fraction=wmf,
-                core_mass_fraction=cmf,
-                type=object_type,
-                total_mass=columns[0]
-            )
+        num_planetesimals, num_embryos = \
+            add_particles_from_conditions_file(sim, extradata, parameters.initcon_file, testrun)
 
-            if columns[1] == 0:  # that should not be needed, but nevertheless is
-                part = Particle(m=columns[0], hash=hash, r=solar_radius / astronomical_unit)
-            else:
-                inc = columns[3]
-                if testrun:
-                    # force particles to collide early when running tests
-                    inc /= 1000
-                part = Particle(
-                    m=columns[0], a=columns[1], e=columns[2],
-                    inc=inc, omega=columns[4],
-                    Omega=columns[5], M=columns[6],
-                    simulation=sim,
-                    hash=hash,
-                    r=PlanetaryRadius(columns[0], wmf, cmf).total_radius / astronomical_unit
-                )
-            sim.add(part)
-            i += 1
-        assert sim.N == num_planetesimals + num_embryos + 3
         sim.move_to_com()
         extradata.meta.initial_N = sim.N
         extradata.meta.initial_N_planetesimal = num_planetesimals
