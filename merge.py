@@ -60,7 +60,6 @@ def merge_particles(sim_p: POINTER_REB_SIM, collision: reb_collision, ed: ExtraD
     print("colliding")
     sim: Simulation = sim_p.contents
     print("current time step", sim.dt)
-    print("mode", sim.ri_mercurius.mode)
     print(f"p1 is {collision.p1}")
     print(f"p2 is {collision.p2}")
     # the assignment to cp1 or cp2 seems to be random
