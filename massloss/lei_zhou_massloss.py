@@ -24,9 +24,9 @@ class LeiZhouMassloss(Massloss):
     def estimate(self, alpha, velocity, projectile_mass, gamma) -> Tuple[float, float, float]:
         rand_water = self.rng.random()
         rand_mass = self.rng.random()
-        water_retention = self.delta_w_low + rand_water * (self.delta_w_up - self.delta_w_low)
-        mantle_retention = self.delta_m_low + rand_mass * (self.delta_m_up - self.delta_m_low)
+        water_loss = self.delta_w_low + rand_water * (self.delta_w_up - self.delta_w_low)
+        mantle_loss = self.delta_m_low + rand_mass * (self.delta_m_up - self.delta_m_low)
         # the paper only considers objects with a core and water shell
         # so we assume the same mass retention for mantle and core
-        core_retention = mantle_retention
-        return water_retention, mantle_retention, core_retention
+        core_loss = mantle_loss
+        return 1 - water_loss, 1 - mantle_loss, 1 - core_loss
