@@ -4,7 +4,6 @@ from sys import argv
 
 import numpy as np
 from matplotlib import pyplot as plt
-from numpy import pi
 from scipy.constants import mega
 
 from extradata import ExtraData, CollisionMeta
@@ -108,17 +107,14 @@ for file in files:
         ax6.scatter(times, core_loss, **kwargs)
     all_angles.extend(angles)
 ax4.autoscale(enable=True, axis='y')
-all_angles = np.radians(np.asarray(all_angles))
+all_angles = np.asarray(all_angles)
 
-hist, bins = np.histogram(all_angles, bins=50, density=True)
-width = 0.7 * (bins[1] - bins[0])
+hist, bins = np.histogram(all_angles, bins=50)
+width = bins[1] - bins[0]
 center = (bins[:-1] + bins[1:]) / 2
-print(center)
-print(hist)
-ax7.bar(center / 2 / pi * 360, hist, align="center", width=width / 2 / pi * 360)
-# n, bins, _ = ax7.hist(all_angles, bins=50, density=True)
+ax7.bar(center, hist, align="center", width=width)
 xs = np.linspace(0, 90, 1000)
-ys = np.sin(np.radians(xs) * 2)
+ys = np.sin(np.radians(xs) * 2) * np.sum(np.radians(width) * hist)
 ax7.plot(xs, ys, c="C1")
 
 print()
