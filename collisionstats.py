@@ -1,19 +1,22 @@
-from pathlib import Path
+import random
+from os.path import expanduser
 from sys import argv
 
+import numpy as np
 from matplotlib import pyplot as plt
+from numpy import pi
 from scipy.constants import mega
 
 from extradata import ExtraData, CollisionMeta
-from utils import filename_from_argv, create_figure, plot_settings
+from utils import filename_from_argv, create_figure, plot_settings, mode_from_fn, scenario_colors
 
 plot_settings()
 
 dotsize = 1.5
 
-angle_label = "Impact angle (deg)"
+angle_label = "Impact angle [deg]"
 v_label = "v/v_esc"
-time_label = "Time (Myr)"
+time_label = "Time [Myr]"
 
 fig1, ax1 = create_figure()
 
@@ -38,8 +41,30 @@ ax4.set_yscale("log")
 
 ax4.set_xlabel(time_label)
 ax4.set_ylabel("water loss")
+
+fig5, ax5 = create_figure()
+ax5.set_xscale("log")
+ax5.set_yscale("log")
+
+ax5.set_xlabel(time_label)
+ax5.set_ylabel("mantle loss")
+
+fig6, ax6 = create_figure()
+ax6.set_xscale("log")
+ax6.set_yscale("log")
+
+ax6.set_xlabel(time_label)
+ax6.set_ylabel("core loss")
+
+fig7, ax7 = create_figure()
+ax7.set_xlabel(angle_label)
+
 sum = 0
-for file in argv[1:]:
+all_angles = []
+files = argv[1:]
+random.seed(1)
+random.shuffle(files)
+for file in files:
     fn = filename_from_argv(file)
     print(fn)
     try:
@@ -50,6 +75,8 @@ for file in argv[1:]:
     vs = []
     angles = []
     water_loss = []
+    mantle_loss = []
+    core_loss = []
     times = []
 
     for collision in ed.tree.get_tree().values():
@@ -61,17 +88,45 @@ for file in argv[1:]:
         if loss == 0:
             loss = 1e-5  # TODO: proper fix for log-log
         water_loss.append(loss)
+        mantle_loss.append(1 - meta.mantle_retention)
+        core_loss.append(1 - meta.core_retention)
         times.append(meta.time / mega)
 
-    ax1.scatter(angles, vs, s=dotsize)
-    ax2.scatter(times, angles, s=dotsize)
-    ax3.scatter(times, vs, s=dotsize)
-    ax4.scatter(times, water_loss, s=dotsize)
+    mode = mode_from_fn(fn)
 
+    kwargs = {
+        "s": dotsize,
+        "color": scenario_colors[mode],
+        "alpha": .5
+    }
+    ax1.scatter(angles, vs, **kwargs)
+    ax2.scatter(times, angles, **kwargs)
+    ax3.scatter(times, vs, **kwargs)
+    if mode != "pm":
+        ax4.scatter(times, water_loss, **kwargs)
+        ax5.scatter(times, mantle_loss, **kwargs)
+        ax6.scatter(times, core_loss, **kwargs)
+    all_angles.extend(angles)
 ax4.autoscale(enable=True, axis='y')
+all_angles = np.radians(np.asarray(all_angles))
 
-for i, fig in enumerate([fig1, fig2, fig3, fig4]):
+hist, bins = np.histogram(all_angles, bins=50, density=True)
+width = 0.7 * (bins[1] - bins[0])
+center = (bins[:-1] + bins[1:]) / 2
+print(center)
+print(hist)
+ax7.bar(center / 2 / pi * 360, hist, align="center", width=width / 2 / pi * 360)
+# n, bins, _ = ax7.hist(all_angles, bins=50, density=True)
+xs = np.linspace(0, 90, 1000)
+ys = np.sin(np.radians(xs) * 2)
+ax7.plot(xs, ys, c="C1")
+
+print()
+print(all_angles.mean())
+
+for i, fig in enumerate([fig1, fig2, fig3, fig4, fig5, fig6, fig7]):
     fig.tight_layout()
-    fig.savefig(Path("plots") / fn.with_suffix(f".collision{i}.pdf").name, transparent=True)
+    fig.savefig(expanduser(f"~/tmp/collision{i}.pdf"))
+
 print(sum)
 plt.show()
