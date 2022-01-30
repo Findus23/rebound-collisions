@@ -4,7 +4,6 @@ from sys import argv
 
 import numpy as np
 from matplotlib import pyplot as plt
-from scipy.constants import mega
 
 from extradata import ExtraData, CollisionMeta
 from utils import filename_from_argv, create_figure, plot_settings, mode_from_fn, scenario_colors
@@ -13,9 +12,9 @@ plot_settings()
 
 dotsize = 1.5
 
-angle_label = "Impact angle [deg]"
+angle_label = "impact angle [deg]"
 v_label = "v/v_esc"
-time_label = "Time [Myr]"
+time_label = "time [yr]"
 
 fig1, ax1 = create_figure()
 
@@ -57,6 +56,7 @@ ax6.set_ylabel("core loss")
 
 fig7, ax7 = create_figure()
 ax7.set_xlabel(angle_label)
+ax7.set_ylabel("# Collisions")
 
 sum = 0
 all_angles = []
@@ -89,7 +89,7 @@ for file in files:
         water_loss.append(loss)
         mantle_loss.append(1 - meta.mantle_retention)
         core_loss.append(1 - meta.core_retention)
-        times.append(meta.time / mega)
+        times.append(meta.time)
 
     mode = mode_from_fn(fn)
 
@@ -115,12 +115,23 @@ center = (bins[:-1] + bins[1:]) / 2
 ax7.bar(center, hist, align="center", width=width)
 xs = np.linspace(0, 90, 1000)
 ys = np.sin(np.radians(xs) * 2) * np.sum(np.radians(width) * hist)
+ax7.set_xticks(np.linspace(0,90,7))
 ax7.plot(xs, ys, c="C1")
 
 print()
 print(all_angles.mean())
 
-for i, fig in enumerate([fig1, fig2, fig3, fig4, fig5, fig6, fig7]):
+fig_legend = plt.figure()
+
+legend_dots = []
+for mode, color in scenario_colors.items():
+    legend_dots.append(fig_legend.gca().scatter([0], [0], color=color, label=mode.upper(), marker="o"))
+
+fig_legend.legend(handles=legend_dots, ncol=4)
+fig_legend.gca().remove()
+fig_legend.savefig(expanduser(f"~/tmp/collision_legend.pdf"), bbox_inches='tight')
+
+for i, fig in enumerate([fig1, fig2, fig3, fig4, fig5, fig6, fig7, fig_legend]):
     fig.tight_layout()
     fig.savefig(expanduser(f"~/tmp/collision{i}.pdf"))
 
