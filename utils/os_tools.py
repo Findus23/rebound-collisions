@@ -8,7 +8,7 @@ from setproctitle import setproctitle
 
 
 def filename_from_argv(argument: str = None) -> Path:
-    if len(argv) < 2:
+    if len(argv) < 2 and not argument:
         raise ValueError("specify filename")
     if argument:
         fn = argument
