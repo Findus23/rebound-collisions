@@ -48,17 +48,46 @@ simulation_run:
       - "test_simulationrun*"
     expire_in: 60 days
 
-visualisation:
+analyze:
   stage: visualisation
   needs:
     - simulation_run
   script:
     - mkdir plots
     - poetry run python analyze.py test_simulationrun
+
+collisionhistory:
+  stage: visualisation
+  needs:
+    - simulation_run
+  script:
+    - mkdir plots
     - poetry run python collisionhistory.py test_simulationrun
+
+collisionstats:
+  stage: visualisation
+  needs:
+    - simulation_run
+  script:
+    - mkdir plots
     - poetry run python collisionstats.py test_simulationrun
+
+particle_numbers:
+  stage: visualisation
+  needs:
+    - simulation_run
+  script:
+    - mkdir plots
     - poetry run python particle_numbers.py test_simulationrun
+
+final_results:
+  stage: visualisation
+  needs:
+    - simulation_run
+  script:
+    - mkdir plots
     - poetry run python final_results.py test_simulationrun
+
 
 graph:
   stage: visualisation
