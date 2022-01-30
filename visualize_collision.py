@@ -47,12 +47,13 @@ for collision in ed.tree.get_tree().values():
     for pos, vel, r in zip(meta.collision_positions, meta.collision_velocities, meta.collision_radii):
         print(pos, vel, r)
         circle_coords = get_circle(*pos, r)
-        ax.plot_wireframe(*circle_coords, color=f"C{i}")
+        ax.plot_wireframe(*circle_coords, color=f"C{i}", linewidths=.75)
         a = Arrow3D(*[(p, p + v / 100000) for p, v in zip(pos, vel)], mutation_scale=20,
                     lw=1, arrowstyle="-|>", color="k")
         ax.add_artist(a)
         i += 1
-    ax.set_title(f"angle={meta.input.alpha:.2f}, v/v_esc={meta.input.velocity_esc:.2f}")
+    print("title", f"angle={meta.input.alpha:.2f}, v/v_esc={meta.input.velocity_esc:.2f}")
+    # ax.set_title(f"angle={meta.input.alpha:.2f}, v/v_esc={meta.input.velocity_esc:.2f}")
     xyzlim = np.array([ax.get_xlim3d(), ax.get_ylim3d(), ax.get_zlim3d()]).T
     diff = min(xyzlim[0] - xyzlim[1])
 
@@ -66,6 +67,10 @@ for collision in ed.tree.get_tree().values():
     ax.set_zlim3d((zmin, zmin - diff))
     # ax.set_ylim3d(XYZlim)
     # ax.set_zlim3d(XYZlim * 3/4)
+    ax.set_zticklabels([])
+    ax.set_yticklabels([])
+    ax.set_xticklabels([])
+    fig.tight_layout()
     if not is_ci():
         plt.savefig("/home/lukas/tmp/3d.pdf")
     plt.show()
