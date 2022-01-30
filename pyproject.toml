@@ -13,11 +13,12 @@ scipy = "^1.4.1"
 graphviz = "^0.17"
 py-spy = "^0.3.3"
 mypy = "^0.910"
-rebound-stubs = {git = "https://github.com/Findus23/rebound-stubs.git", rev = "main"}
+rebound-stubs = {git = "https://github.com/Findus23/rebound-stubs.git", rev = "3623b3e2e5ece088ab8aacd3b7f67a9b1114eba1"}
 setproctitle = "^1.2.2"
 libconf = "^2.0.1"
 PyYAML = "^5.4.1"
 pandas = "^1.2.3"
+h5py = "^3.6.0"
 
 [tool.poetry.dev-dependencies]
 torch = "^1.8.0"
