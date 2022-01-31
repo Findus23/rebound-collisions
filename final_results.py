@@ -1,3 +1,4 @@
+from math import isclose
 from os.path import expanduser
 from statistics import mean
 from typing import List
@@ -10,8 +11,8 @@ from scipy.constants import mega
 
 from extradata import ExtraData, CollisionMeta
 from utils import filename_from_argv, is_potentially_habitable, Particle, earth_mass, earth_water_mass, \
-    habitable_zone_inner, habitable_zone_outer, get_water_cmap, add_water_colormap, create_figure, add_au_e_label, \
-    inner_solar_system_data, is_ci, get_cb_data
+    habitable_zone_inner, habitable_zone_outer, get_water_cmap, create_figure, add_au_e_label, \
+    inner_solar_system_data, is_ci, get_cb_data, initial_saturn_a, initial_jupiter_a
 
 # pd.set_option('display.max_columns', None)
 pd.options.display.max_columns = None
@@ -93,11 +94,13 @@ for name, filepath in methods.items():
                     e_values_per_planet[hash] = []
                 a_values_per_planet[hash].append(orbit.a)
                 e_values_per_planet[hash].append(orbit.e)
+        gas_giants = []
         for particle in last_sim.particles:
             particle_data = ed.pd(particle)
-            if particle_data.type in ["sun", "gas giant"]:
+            if particle_data.type in ["sun", "planetesimal"]:
                 continue
-            if particle_data.type == "planetesimal":
+            if particle_data.type == "gas giant":
+                gas_giants.append(particle)
                 continue
             # print(particle.r * astronomical_unit / earth_radius)
             planets.append(particle)
@@ -106,6 +109,15 @@ for name, filepath in methods.items():
             fin_mass.append(particle_data.total_mass)
             fin_core_mass.append(particle_data.total_mass * particle_data.core_mass_fraction)
             fin_wmf.append(particle_data.water_mass_fraction)
+
+        if len(gas_giants) != 2:
+            print(f"it seems like gas giants got lost ({len(gas_giants)} left)")
+        elif not (
+                isclose(gas_giants[0].a, initial_saturn_a, rel_tol=0.05)
+                and
+                isclose(gas_giants[1].a, initial_jupiter_a, rel_tol=0.05)
+        ):
+            print("gas giants moved")
 
         pothab_planets = [p for p in planets if is_potentially_habitable(p)]
         num_planets = len(planets)
@@ -144,7 +156,7 @@ for name, filepath in methods.items():
                 else:
                     other_parent = parent
             if gas_parent_counter > 1:
-                print(f"it seems like {gas_parent_counter} gas giants collided with each other")
+                print(f"it seems like {gas_parent_counter} gas giants collided with each other in {col_id}")
                 continue
             if gas_parent:
                 previous_body = ed.pdata[other_parent]
