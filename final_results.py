@@ -43,14 +43,18 @@ methods = {
     "rbf": "data/final_rbf_NUM.bin",
     "rbf_sm": "data/final_rbf_NUM.bin",
     "nn": "data/final_nn_NUM.bin",
-    "lz": "data/final_lz_NUM.bin",
+    "lz": "data/final_lz_correct_NUM.bin",
     "pm": "data/final_pm_NUM.bin",
 }
-columns = ["num_planets [1]", "num_planets_pot [1]", "M_planets [$M_\\oplus$]", "M_planets_pot [$M_\\oplus$]",
-           "M_water [$M_{w,\\oplus}$]", "M_water_pot [$M_{w,\\oplus}$]", "escaped_mass [$M_\\oplus$]",
-           "escaped_water_mass [$M_{w,\\oplus}$]", "sun_mass [$M_\\oplus$]", "sun_water_mass [$M_{w,\\oplus}$]",
-           "gas_giant_mass [$M_\\oplus$]", "gas_giant_water_mass [$M_{w,\\oplus}$]",
-           "collision_mass [$M_\\oplus$]", "collision_water_mass [$M_{w,\\oplus}$]", "last_collision_time [Myr]"]
+columns = [
+    "$N_\\text{planets}$ [1]", "$N_\\text{planets,pot}$ [1]", "$M_\\text{planets}$ [$M_\\oplus$]",
+    "$M_\\text{planets,pot}$ [$M_\\oplus$]", "$M_\\text{water}$ [$M_{w,\\oplus}$]",
+    "$M_\\text{water,pot}$ [$M_{w,\\oplus}$]", "$M_\\text{esc}$ [$M_\\oplus$]",
+    "$M_\\text{esc,water}$ [$M_{w,\\oplus}$]", "$M_\\text{sun}$ [$M_\\oplus$]",
+    "$M_\\text{sun,water}$ [$M_{w,\\oplus}$]", "$M_\\text{gas-giant}$  [$M_\\oplus$]",
+    "$M_\\text{gas-giant,water}$ [$M_{w,\\oplus}$]", "$M_\\text{col}$ [$M_\\oplus$]",
+    "$M_\\text{col,water}$ [$M_{w,\\oplus}$]", "$t_\\text{last-col}$ [Myr]"
+]
 
 maintable = []
 
@@ -63,7 +67,6 @@ for name, filepath in methods.items():
     fin_es = []
     fin_mass = []
     fin_core_mass = []
-    fin_wmf = []
     fin_wmf = []
     max_num = 41 if name == "rbf" else 21
     for i in range(1, max_num):
@@ -246,19 +249,19 @@ for name, filepath in methods.items():
     else:
         maintable.append(list(zip(df.mean(), df.std())))
 
-maintable.append(list(zip(*get_cb_data())))
-maintable.append(list(zip(*get_cb_data(pm=True))))
+maintable.append(list(zip(*get_cb_data(minmax))))
+maintable.append(list(zip(*get_cb_data(minmax, pm=True))))
 
 transposed = list(map(list, zip(*maintable)))
 
 for row, name in zip(transposed, columns):
     n, unit = name.split()
 
-    strings = [" ".join([n.replace("_", "\\_"), unit])]
+    strings = [" ".join([n, unit])]
     for value, pm in row:
         if np.isnan(value):
             strings.append("{-}")
-        elif minmax:
+        elif minmax:  # in that case (value,pm) = (min,max)
             strings.append(f"{value:.1f} -- {pm:.1f}")
         else:
             strings.append(f"{value:.1f}\\pm {pm:.1f}")
